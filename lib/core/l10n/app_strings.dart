@@ -1,0 +1,76 @@
+enum AppLanguage { en, so }
+
+class AppStrings {
+  static const _en = {
+    'home': 'Home',
+    'categories': 'Categories',
+    'deliveries': 'Deliveries',
+    'messages': 'Messages',
+    'profile': 'Profile',
+    'search_hint': 'Search products, brands...',
+    'featured': 'Featured Products',
+    'new_arrivals': 'New Arrivals',
+    'top_stores': 'Top Stores',
+    'see_all': 'See All',
+    'saved_items': 'Saved Items',
+    'my_orders': 'My Orders',
+    'notifications': 'Notifications',
+    'no_notifications': 'No notifications yet',
+    'language': 'Language',
+    'english': 'English',
+    'somali': 'Somali',
+    'checkout': 'Checkout',
+    'coupon': 'Coupon code',
+    'apply': 'Apply',
+    'share': 'Share',
+    'rate_product': 'Rate this product',
+    'submit_review': 'Submit review',
+    'low_stock': 'Low stock',
+    'sales_stats': 'Sales stats',
+    'call_customer': 'Call customer',
+    'open_maps': 'Open in Maps',
+    'ban': 'Ban',
+    'unban': 'Unban',
+    'coupons': 'Coupons',
+    'export_orders': 'Export orders',
+  };
+
+  static const _so = {
+    'home': 'Guriga',
+    'categories': 'Qaybaha',
+    'deliveries': 'Gaadiidka',
+    'messages': 'Fariimaha',
+    'profile': 'Profile',
+    'search_hint': 'Raadi alaab, brands...',
+    'featured': 'Alaabta la doorbiday',
+    'new_arrivals': 'Cusub',
+    'top_stores': 'Dukaamada ugu fiican',
+    'see_all': 'Dhammaan',
+    'saved_items': 'Kuwa la kaydiyay',
+    'my_orders': 'Dalabyadayda',
+    'notifications': 'Ogeysiisyada',
+    'no_notifications': 'Ogeysiis ma jiro',
+    'language': 'Luuqad',
+    'english': 'Ingiriis',
+    'somali': 'Soomaali',
+    'checkout': 'Bixinta',
+    'coupon': 'Koodhka dhimista',
+    'apply': 'Isticmaal',
+    'share': 'Wadaag',
+    'rate_product': 'Qiimee alaabtan',
+    'submit_review': 'Gudbi qiimaynta',
+    'low_stock': 'Alaab yar bay ka dhiman',
+    'sales_stats': 'Iibka',
+    'call_customer': 'Wac macmiilka',
+    'open_maps': 'Fur khariidada',
+    'ban': 'Xayir',
+    'unban': 'Fur',
+    'coupons': 'Coupons',
+    'export_orders': 'Dhoof dalabyada',
+  };
+
+  static String get(String key, AppLanguage lang) {
+    final map = lang == AppLanguage.so ? _so : _en;
+    return map[key] ?? _en[key] ?? key;
+  }
+}

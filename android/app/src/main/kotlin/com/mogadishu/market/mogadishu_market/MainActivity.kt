@@ -1,0 +1,5 @@
+package com.mogadishu.market.mogadishu_market
+
+import io.flutter.embedding.android.FlutterActivity
+
+class MainActivity : FlutterActivity()
