@@ -155,7 +155,7 @@ class _StoreProfileViewState extends State<StoreProfileView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("About Store", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                      const Text("About Store", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
                       const SizedBox(height: 10),
                       Text(widget.store.description,
                           style: const TextStyle(color: Color(0xFF64748B), fontSize: 14, fontWeight: FontWeight.w500, height: 1.6)),
@@ -169,7 +169,7 @@ class _StoreProfileViewState extends State<StoreProfileView> {
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
                     children: [
-                      const Text("Products", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                      const Text("Products", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Container(
@@ -251,7 +251,7 @@ class _StoreProfileViewState extends State<StoreProfileView> {
                   minimumSize: const Size(double.infinity, 56),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
-                  foregroundColor: const Color(0xFF0F172A),
+                  foregroundColor: const Color(0xFF1F2937),
                 ),
               ),
             ),
@@ -281,7 +281,7 @@ class _StoreProfileViewState extends State<StoreProfileView> {
         children: [
           Icon(icon, color: color, size: 22),
           const SizedBox(height: 8),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF0F172A))),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF1F2937))),
           const SizedBox(height: 2),
           Text(label, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w700)),
         ],

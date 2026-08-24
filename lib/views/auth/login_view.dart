@@ -8,6 +8,7 @@ import '../../core/widgets/custom_text_field.dart';
 import 'signup_view.dart';
 import '../../core/widgets/colorful_hello.dart';
 import '../../core/theme/app_theme.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 
 class LoginView extends StatefulWidget {
   /// Bottom-nav tab to show after login (0=Home … 4=Profile).
@@ -19,7 +20,7 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
-  final _emailController = TextEditingController();
+  String _phoneNumber = "";
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
@@ -32,7 +33,7 @@ class _LoginViewState extends State<LoginView> {
     final notifications = context.read<NotificationProvider>();
 
     final error = await authProvider.login(
-      _emailController.text.trim(),
+      _phoneNumber,
       _passwordController.text,
     );
     if (!mounted) return;
@@ -102,13 +103,39 @@ class _LoginViewState extends State<LoginView> {
                   "Sign in to your account to continue",
                   style: TextStyle(color: AppColors.textGray, fontSize: 15, fontWeight: FontWeight.w500),
                 ),
-                const SizedBox(height: 36),
-                CustomTextField(
-                  label: "Email/Phone",
-                  hint: "name@email.com or 61XXXXXXX",
-                  prefixIcon: Icons.person_outline_rounded,
-                  controller: _emailController,
-                  validator: (v) => v == null || v.isEmpty ? "Email/Phone is required" : null,
+                const Text(
+                  "Phone Number",
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF374151), letterSpacing: 0.3),
+                ),
+                const SizedBox(height: 10),
+                IntlPhoneField(
+                  decoration: InputDecoration(
+                    hintText: "61XXXXXXX",
+                    hintStyle: const TextStyle(color: Color(0xFFADB5BD), fontWeight: FontWeight.w500),
+                    filled: true,
+                    fillColor: AppColors.lightGray,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: AppColors.green, width: 2),
+                    ),
+                  ),
+                  initialCountryCode: 'SO',
+                  showDropdownIcon: true,
+                  showCountryFlag: true,
+                  disableLengthCheck: true,
+                  dropdownIconPosition: IconPosition.trailing,
+                  onChanged: (phone) {
+                    _phoneNumber = phone.completeNumber;
+                  },
                 ),
                 const SizedBox(height: 20),
                 CustomTextField(

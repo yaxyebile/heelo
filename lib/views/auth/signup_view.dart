@@ -18,7 +18,6 @@ class SignupView extends StatefulWidget {
 
 class _SignupViewState extends State<SignupView> {
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
   String _phoneNumber = "";
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -29,7 +28,6 @@ class _SignupViewState extends State<SignupView> {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final error = await auth.signup(
         name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
         phone: _phoneNumber,
         password: _passwordController.text,
       );
@@ -95,15 +93,7 @@ class _SignupViewState extends State<SignupView> {
                 controller: _nameController,
                 validator: (v) => v == null || v.isEmpty ? "Name is required" : null,
               ),
-              const SizedBox(height: 20),
-              CustomTextField(
-                label: "Email Address",
-                hint: "name@email.com",
-                prefixIcon: Icons.email_outlined,
-                controller: _emailController,
-                validator: (v) => v == null || v.isEmpty ? "Email is required" : null,
-              ),
-              const SizedBox(height: 20),
+
               const Text(
                 "Phone Number",
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF374151), letterSpacing: 0.3),
@@ -131,7 +121,7 @@ class _SignupViewState extends State<SignupView> {
                 ),
                 initialCountryCode: 'SO',
                 showDropdownIcon: true,
-                showCountryFlag: false, // Prevents 404 asset errors on Web
+                showCountryFlag: true,
                 disableLengthCheck: true, // Allows more/less digits
                 dropdownIconPosition: IconPosition.trailing,
                 onChanged: (phone) {

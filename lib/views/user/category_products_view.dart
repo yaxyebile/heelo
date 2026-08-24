@@ -19,35 +19,44 @@ class CategoryProductsView extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFF0F172A)),
+        iconTheme: const IconThemeData(color: Color(0xFF1F2937)),
         title: Text(
           category.name,
-          style: const TextStyle(color: Color(0xFF0F172A), fontSize: 18, fontWeight: FontWeight.w900),
+          style: const TextStyle(color: Color(0xFF1F2937), fontSize: 18, fontWeight: FontWeight.w900),
         ),
       ),
-      body: products.isEmpty
-          ? const Center(
-              child: Text(
-                "No products in this category yet.",
-                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 16, fontWeight: FontWeight.w600),
+      body: RefreshIndicator(
+        onRefresh: () => market.refresh(),
+        child: products.isEmpty
+            ? const SingleChildScrollView(
+                physics: AlwaysScrollableScrollPhysics(),
+                child: SizedBox(
+                  height: 400,
+                  child: Center(
+                    child: Text(
+                      "No products in this category yet.",
+                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+              )
+            : GridView.builder(
+                padding: const EdgeInsets.all(24),
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 20,
+                  crossAxisSpacing: 20,
+                  childAspectRatio: 0.68,
+                ),
+                itemCount: products.length,
+                itemBuilder: (context, i) => ProductCard(
+                  product: products[i],
+                  onTap: () {},
+                  onAddToCart: () => market.addToCart(products[i], 1),
+                ),
               ),
-            )
-          : GridView.builder(
-              padding: const EdgeInsets.all(24),
-              physics: const BouncingScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20,
-                childAspectRatio: 0.68,
-              ),
-              itemCount: products.length,
-              itemBuilder: (context, i) => ProductCard(
-                product: products[i],
-                onTap: () {},
-                onAddToCart: () => market.addToCart(products[i], 1),
-              ),
-            ),
+      ),
     );
   }
 }

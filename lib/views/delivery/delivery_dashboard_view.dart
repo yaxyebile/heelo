@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/marketplace_provider.dart';
 import '../../models/order.dart';
 import '../chat/chat_screen.dart';
+import 'live_tracking_view.dart';
 
 class DeliveryDashboardView extends StatefulWidget {
   const DeliveryDashboardView({super.key});
@@ -230,7 +231,7 @@ class _DeliveryDashboardViewState extends State<DeliveryDashboardView> {
                             style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFF0F172A))),
+                                color: Color(0xFF1F2937))),
                         const SizedBox(height: 6),
                         const Text(
                           'Dalabyada aad dukaanka ka qaadatay — halkan ku gaarsi',
@@ -267,7 +268,7 @@ class _DeliveryDashboardViewState extends State<DeliveryDashboardView> {
                       style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFF0F172A))),
+                          color: Color(0xFF1F2937))),
                   const SizedBox(height: 6),
                   const Text(
                     'Taabo "Qaado alaabta" — kadib waxay u gudbi doontaa Gaarsiin',
@@ -305,7 +306,7 @@ class _DeliveryDashboardViewState extends State<DeliveryDashboardView> {
                       style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
-                          color: Color(0xFF0F172A))),
+                          color: Color(0xFF1F2937))),
                   const SizedBox(height: 12),
                   availableOrders.isEmpty
                       ? _emptyBox('Dalab furan ma jiro',
@@ -338,7 +339,7 @@ class _DeliveryDashboardViewState extends State<DeliveryDashboardView> {
                             style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w900,
-                                color: Color(0xFF0F172A))),
+                                color: Color(0xFF1F2937))),
                         const SizedBox(height: 6),
                         const Text(
                           'Dalabyada aad gaarsiisay — halkan ayay ku dhamaadaan',
@@ -496,7 +497,7 @@ class _DeliveryDashboardViewState extends State<DeliveryDashboardView> {
                           style: const TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 15,
-                              color: Color(0xFF0F172A))),
+                              color: Color(0xFF1F2937))),
                       Text(
                           '\$${order.totalAmount.toStringAsFixed(2)}  •  ${order.items.length} alaab',
                           style: const TextStyle(
@@ -593,7 +594,7 @@ class _DeliveryDashboardViewState extends State<DeliveryDashboardView> {
                               style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF0F172A))),
+                                  color: Color(0xFF1F2937))),
                         ],
                       ),
                     ),
@@ -649,33 +650,57 @@ class _DeliveryDashboardViewState extends State<DeliveryDashboardView> {
                           style: const TextStyle(
                               fontSize: 12, color: Color(0xFF475569))),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        if (order.customerPhone != null &&
-                            order.customerPhone!.isNotEmpty)
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => _callPhone(order.customerPhone!),
-                              icon: const Icon(Icons.phone_rounded, size: 18),
-                              label: const Text('Wac',
-                                  style: TextStyle(fontSize: 12)),
+                      Row(
+                        children: [
+                          if (order.customerPhone != null &&
+                              order.customerPhone!.isNotEmpty)
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => _callPhone(order.customerPhone!),
+                                icon: const Icon(Icons.phone_rounded, size: 18),
+                                label: const Text('Wac',
+                                    style: TextStyle(fontSize: 12)),
+                              ),
                             ),
-                          ),
-                        if (order.customerAddress != null &&
-                            order.customerAddress!.isNotEmpty) ...[
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () =>
-                                  _openMaps(order.customerAddress!),
-                              icon: const Icon(Icons.map_rounded, size: 18),
-                              label: const Text('Khariidad',
-                                  style: TextStyle(fontSize: 12)),
+                          if (order.customerAddress != null &&
+                              order.customerAddress!.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () =>
+                                    _openMaps(order.customerAddress!),
+                                icon: const Icon(Icons.map_rounded, size: 18),
+                                label: const Text('Khariidad',
+                                    style: TextStyle(fontSize: 12)),
+                              ),
                             ),
-                          ),
+                          ],
                         ],
+                      ),
+                      if (order.status == OrderStatus.outForDelivery) ...[
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => LiveTrackingView(
+                                  orderId: order.id,
+                                  isDriver: true,
+                                ),
+                              ),
+                            ),
+                            icon: const Icon(Icons.location_on_rounded, size: 18),
+                            label: const Text('Live Tracking (Raad-raac)'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF8B5CF6),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
                       ],
-                    ),
                   ],
                 ),
               ),
@@ -788,7 +813,7 @@ class _DeliveryDashboardViewState extends State<DeliveryDashboardView> {
                 style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 20,
-                    color: Color(0xFF0F172A))),
+                    color: Color(0xFF1F2937))),
             const SizedBox(height: 2),
             Text(l,
                 textAlign: TextAlign.center,

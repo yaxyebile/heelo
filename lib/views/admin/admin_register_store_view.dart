@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/marketplace_provider.dart';
 import '../../models/store.dart';
+import '../../core/services/upload_service.dart';
 
 class AdminRegisterStoreView extends StatefulWidget {
   const AdminRegisterStoreView({super.key});
@@ -74,7 +75,7 @@ class _AdminRegisterStoreViewState extends State<AdminRegisterStoreView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
         title: const Text("Diiwaangeli Dukaan Cusub", style: TextStyle(fontWeight: FontWeight.w900)),
         centerTitle: true, elevation: 0,
@@ -83,7 +84,7 @@ class _AdminRegisterStoreViewState extends State<AdminRegisterStoreView> {
         padding: const EdgeInsets.all(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text("Macluumaadka Dukaanka", 
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
           const SizedBox(height: 20),
           
           _field("Magaca Dukaanka", Icons.store_rounded, _nameCtrl),
@@ -94,11 +95,11 @@ class _AdminRegisterStoreViewState extends State<AdminRegisterStoreView> {
           const SizedBox(height: 24),
 
           const Text("Muuqaalka ( URLs )", 
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
           const SizedBox(height: 16),
-          _field("Sawirka Logo-ka (URL)", Icons.image_outlined, _logoCtrl),
+          _field("Sawirka Logo-ka (URL)", Icons.image_outlined, _logoCtrl, isImage: true),
           const SizedBox(height: 12),
-          _field("Sawirka Banner-ka (URL)", Icons.style_outlined, _bannerCtrl),
+          _field("Sawirka Banner-ka (URL)", Icons.style_outlined, _bannerCtrl, isImage: true),
           const SizedBox(height: 40),
 
           GestureDetector(
@@ -130,11 +131,20 @@ class _AdminRegisterStoreViewState extends State<AdminRegisterStoreView> {
     );
   }
 
-  Widget _field(String label, IconData icon, TextEditingController ctrl, {int lines = 1}) {
+  Widget _field(String label, IconData icon, TextEditingController ctrl, {int lines = 1, bool isImage = false}) {
     return TextFormField(
       controller: ctrl, maxLines: lines,
       decoration: InputDecoration(
         labelText: label, prefixIcon: Icon(icon, size: 20, color: const Color(0xFF94A3B8)),
+        suffixIcon: isImage ? IconButton(
+          icon: const Icon(Icons.upload_file, color: Color(0xFFFF6B00)),
+          onPressed: () async {
+            final url = await UploadService.pickAndUploadImage();
+            if (url != null) {
+              setState(() => ctrl.text = url);
+            }
+          },
+        ) : null,
         filled: true, fillColor: Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),

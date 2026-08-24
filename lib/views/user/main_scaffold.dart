@@ -3,11 +3,15 @@ import 'package:provider/provider.dart';
 import 'home_view.dart';
 import 'departments_view.dart';
 import 'stores_list_view.dart';
+import 'property_listings_view.dart';
+import 'second_hand_view.dart';
+import 'technicians_view.dart';
 import 'profile_tab.dart';
-import 'messages_tab.dart';
 import '../../core/constants/colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/marketplace_provider.dart';
+import 'package:hakabo/core/l10n/locale_provider.dart';
+import 'package:hakabo/core/l10n/app_strings.dart';
 
 class MainScaffold extends StatefulWidget {
   final int initialTab;
@@ -18,7 +22,7 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
-  static const _tabCount = 5;
+  static const _tabCount = 7;
 
   late int _currentIndex;
   late final Set<int> _visitedTabs;
@@ -40,18 +44,22 @@ class _MainScaffoldState extends State<MainScaffold> {
   }
 
   static const _navItems = [
-    _NavSpec(Icons.home_outlined, Icons.home_rounded, 'Home'),
-    _NavSpec(Icons.grid_view_outlined, Icons.grid_view_rounded, 'Categories'),
-    _NavSpec(Icons.local_shipping_outlined, Icons.local_shipping_rounded, 'Deliveries'),
-    _NavSpec(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded, 'Messages'),
-    _NavSpec(Icons.person_outline_rounded, Icons.person_rounded, 'Profile'),
+    _NavSpec(Icons.home_outlined, Icons.home_rounded, 'home'),
+    _NavSpec(Icons.grid_view_outlined, Icons.grid_view_rounded, 'categories'),
+    _NavSpec(Icons.local_shipping_outlined, Icons.local_shipping_rounded, 'deliveries'),
+    _NavSpec(Icons.handyman_outlined, Icons.handyman_rounded, 'Farsamo'),
+    _NavSpec(Icons.home_work_outlined, Icons.home_work_rounded, 'realestate'),
+    _NavSpec(Icons.swap_horiz_outlined, Icons.swap_horiz_rounded, 'secondhand'),
+    _NavSpec(Icons.person_outline_rounded, Icons.person_rounded, 'profile'),
   ];
 
   @override
   Widget build(BuildContext context) {
     final market = Provider.of<MarketplaceProvider>(context);
     final auth = context.watch<AuthProvider>();
+    final locale = Provider.of<LocaleProvider>(context);
     final authKey = auth.currentUser?.id ?? 'guest';
+
 
     Widget pageFor(int i) {
       switch (i) {
@@ -62,8 +70,12 @@ class _MainScaffoldState extends State<MainScaffold> {
         case 2:
           return const StoresListView(rootTab: true);
         case 3:
-          return MessagesTab(key: ValueKey('messages-$authKey'));
+          return const TechniciansView();
         case 4:
+          return const PropertyListingsView();
+        case 5:
+          return const SecondHandView();
+        case 6:
           return ProfileTab(key: ValueKey('profile-$authKey'));
         default:
           return const SizedBox.shrink();
@@ -108,7 +120,7 @@ class _MainScaffoldState extends State<MainScaffold> {
               minHeight: 2,
               color: AppColors.primary,
               backgroundColor: Colors.transparent,
-            ),
+             ),
           Expanded(
             child: IndexedStack(
               index: _currentIndex,
@@ -117,11 +129,11 @@ class _MainScaffoldState extends State<MainScaffold> {
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(locale),
     );
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(LocaleProvider locale) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -137,10 +149,10 @@ class _MainScaffoldState extends State<MainScaffold> {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 64,
+          height: 72,
           child: Row(
             children: List.generate(_navItems.length, (i) {
-              return Expanded(child: _navItem(i, _navItems[i]));
+              return Expanded(child: _navItem(i, _navItems[i], locale));
             }),
           ),
         ),
@@ -148,7 +160,7 @@ class _MainScaffoldState extends State<MainScaffold> {
     );
   }
 
-  Widget _navItem(int index, _NavSpec spec) {
+  Widget _navItem(int index, _NavSpec spec, LocaleProvider locale) {
     final selected = _currentIndex == index;
     return GestureDetector(
       onTap: () => setState(() {
@@ -176,7 +188,7 @@ class _MainScaffoldState extends State<MainScaffold> {
           ),
           const SizedBox(height: 2),
           Text(
-            spec.label,
+            spec.label == 'Farsamo' ? 'Farsamo' : locale.t(spec.label),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(

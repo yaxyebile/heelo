@@ -53,7 +53,7 @@ class _AdminPaymentSettingsViewState extends State<AdminPaymentSettingsView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
         title: const Text("Payment Settings", style: TextStyle(fontWeight: FontWeight.w900)),
         centerTitle: true, elevation: 0,
@@ -62,7 +62,7 @@ class _AdminPaymentSettingsViewState extends State<AdminPaymentSettingsView> {
         padding: const EdgeInsets.all(24),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text("Global Payment Numbers", 
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
           const SizedBox(height: 8),
           const Text("Dhammaan dukaamada waxay isticmaali doonaan lambarradan si ay macaamiishu lacagta ugu soo diraan.",
             style: TextStyle(color: Color(0xFF64748B), height: 1.5, fontWeight: FontWeight.w500)),

@@ -45,10 +45,10 @@ class _CheckoutViewState extends State<CheckoutView> {
         backgroundColor: Colors.white,
         elevation: 0, centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Color(0xFF0F172A)),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: Color(0xFF1F2937)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Checkout", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF0F172A))),
+        title: const Text("Checkout", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF1F2937))),
       ),
       body: Column(children: [
         Expanded(
@@ -121,7 +121,7 @@ class _CheckoutViewState extends State<CheckoutView> {
 
               // ── Payment Method Picker ──────────────────────────────
               const Text("Payment Method",
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
               const SizedBox(height: 12),
               Row(children: [
                 Expanded(child: _methodCard(PaymentMethod.evcPlus,
@@ -137,7 +137,7 @@ class _CheckoutViewState extends State<CheckoutView> {
 
               // ── Global Payment Info ─────────────────────────────
               const Text("Pay Total Amount",
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
               const SizedBox(height: 12),
 
               _globalPayCard(market.adminEvc, market.adminEdahab, market.cartTotal),
@@ -193,7 +193,7 @@ class _CheckoutViewState extends State<CheckoutView> {
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               const Text("Total Payable",
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF0F172A))),
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF1F2937))),
               Text("\$${market.discountedTotal(market.cartTotal).toStringAsFixed(2)}",
                 style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 26, color: Color(0xFF00AA5B))),
             ]),
@@ -276,7 +276,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                 border: Border.all(color: const Color(0xFFCBD5E1), width: 2))),
           ]),
           const SizedBox(height: 10),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A))),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF1F2937))),
           Text(sub, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
         ]),
       ),
@@ -307,7 +307,7 @@ class _CheckoutViewState extends State<CheckoutView> {
             Icon(Icons.qr_code_scanner_rounded, color: color, size: 20),
             const SizedBox(width: 10),
             const Expanded(child: Text("Dial the code below",
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A)))),
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF1F2937)))),
           ]),
         ),
 

@@ -244,7 +244,7 @@ class SellerDashboardView extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => 
           const ChatScreen(otherUserId: 'admin', otherUserName: 'System Admin'))),
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF1F2937),
         child: const Icon(Icons.support_agent_rounded, color: Colors.white),
       ),
     );
@@ -263,7 +263,7 @@ class SellerDashboardView extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           const Text("No Store Assigned", 
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
           const SizedBox(height: 12),
           const Text(
             "Wali laguma qorin dukaan. Fadlan la xiriir Admin-ka si uu dukaanka kuugu diiwaangeliyo.",
@@ -276,7 +276,7 @@ class SellerDashboardView extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () => auth.logout(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0F172A),
+                backgroundColor: const Color(0xFF1F2937),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -291,7 +291,7 @@ class SellerDashboardView extends StatelessWidget {
 
 
   Widget _sectionHeader(String title) => Text(title,
-    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)));
+    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1F2937)));
 
   Widget _emptyBox(String msg, IconData icon) => Container(
     padding: const EdgeInsets.symmetric(vertical: 28),
@@ -312,7 +312,7 @@ class SellerDashboardView extends StatelessWidget {
       Container(width: 40, height: 40, decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
         child: Icon(icon, color: color, size: 20)),
       const SizedBox(height: 8),
-      Text(v, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF0F172A))),
+      Text(v, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF1F2937))),
       const SizedBox(height: 2),
       Text(l, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10, fontWeight: FontWeight.w700),
         textAlign: TextAlign.center),

@@ -23,45 +23,79 @@ class _AddProductViewState extends State<AddProductView> {
   final _priceController = TextEditingController();
   final _imageController = TextEditingController();
   final _stockController = TextEditingController();
+  final _sizesController = TextEditingController();
+  final _colorsController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String? _selectedCategoryId;
-  File? _pickedImage;
+  final List<File> _pickedImages = [];
 
   Future<void> _pickImage() async {
+    if (_pickedImages.length >= 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ugu badnaan 4 sawir ayaad dooran kartaa')),
+      );
+      return;
+    }
     final x = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
-    if (x != null) setState(() => _pickedImage = File(x.path));
+    if (x != null) {
+      setState(() => _pickedImages.add(File(x.path)));
+    }
+  }
+
+  bool get _isClothing {
+    if (_selectedCategoryId == null) return false;
+    final market = Provider.of<MarketplaceProvider>(context, listen: false);
+    final cat = market.categories.where((c) => c.id == _selectedCategoryId).firstOrNull;
+    if (cat == null) return false;
+    final n = cat.name.toLowerCase();
+    return n.contains('dhar') || n.contains('clothing') || n.contains('kab') || n.contains('shoe');
   }
 
   void _handleSubmit() async {
     if (_formKey.currentState!.validate() && _selectedCategoryId != null) {
       final market = Provider.of<MarketplaceProvider>(context, listen: false);
       final productId = const Uuid().v4();
-      var imageUrl = _imageController.text.trim();
+      final List<String> imageUrls = [];
 
-      if (_pickedImage != null) {
-        final uploaded = await FeaturesService.uploadProductImage(_pickedImage!, productId);
-        if (uploaded != null) imageUrl = uploaded;
+      var manualUrl = _imageController.text.trim();
+      if (manualUrl.isNotEmpty) {
+        imageUrls.add(manualUrl);
       }
-      if (imageUrl.isEmpty) {
+
+      if (_pickedImages.isNotEmpty) {
+        for (var imageFile in _pickedImages) {
+          final uploaded = await FeaturesService.uploadProductImage(imageFile, productId);
+          if (uploaded != null) {
+            imageUrls.add(uploaded);
+          }
+        }
+      }
+
+      if (imageUrls.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Sawir URL ama gallery dooro')),
         );
         return;
       }
 
+      final sizes = _sizesController.text.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+      final colors = _colorsController.text.split(',').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
+
       final product = Product(
         id: productId,
         name: _nameController.text.trim(),
         description: _descController.text.trim(),
         price: double.parse(_priceController.text),
-        image: imageUrl,
-        gallery: [imageUrl],
+        image: imageUrls.first,
+        gallery: imageUrls,
         categoryId: _selectedCategoryId!,
         storeId: widget.store.id,
         storeName: widget.store.name,
         stock: int.parse(_stockController.text),
         rating: 0.0,
         isApproved: false,
+        sizes: _isClothing ? sizes : [],
+        colors: _isClothing ? colors : [],
       );
 
       await market.addProduct(product);
@@ -145,21 +179,57 @@ class _AddProductViewState extends State<AddProductView> {
                 ],
               ),
               const SizedBox(height: 20),
-              const Text('Product image',
+              const Text('Sawirrada Alaabta (Ugu badnaan 4)',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.photo_library_rounded),
-                label: Text(_pickedImage == null ? 'Upload from phone' : 'Image selected ✓'),
-              ),
-              if (_pickedImage != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.file(_pickedImage!, height: 120, width: double.infinity, fit: BoxFit.cover),
+              if (_pickedImages.isNotEmpty)
+                Container(
+                  height: 100,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _pickedImages.length,
+                    itemBuilder: (context, index) {
+                      return Stack(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(right: 12),
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                              image: DecorationImage(
+                                image: FileImage(_pickedImages[index]),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 16,
+                            child: GestureDetector(
+                              onTap: () => setState(() => _pickedImages.removeAt(index)),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.close, size: 14, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
+                ),
+              if (_pickedImages.length < 4)
+                OutlinedButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.photo_library_rounded),
+                  label: Text('Soo geli sawir (${_pickedImages.length}/4)'),
                 ),
               const SizedBox(height: 16),
               CustomTextField(
@@ -193,6 +263,22 @@ class _AddProductViewState extends State<AddProductView> {
                   ),
                 ),
               ),
+              if (_isClothing) ...[
+                const SizedBox(height: 20),
+                CustomTextField(
+                  label: "Sizes (comma separated)",
+                  hint: "S, M, L, XL",
+                  prefixIcon: Icons.straighten_rounded,
+                  controller: _sizesController,
+                ),
+                const SizedBox(height: 20),
+                CustomTextField(
+                  label: "Colors (comma separated)",
+                  hint: "Red, Blue, Black",
+                  prefixIcon: Icons.color_lens_outlined,
+                  controller: _colorsController,
+                ),
+              ],
               const SizedBox(height: 40),
               GestureDetector(
                 onTap: _handleSubmit,

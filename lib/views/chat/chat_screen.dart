@@ -72,8 +72,8 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: widget.rootTab ? Colors.white : const Color(0xFF0F172A),
-        foregroundColor: widget.rootTab ? const Color(0xFF0F172A) : Colors.white,
+        backgroundColor: widget.rootTab ? Colors.white : const Color(0xFF1F2937),
+        foregroundColor: widget.rootTab ? const Color(0xFF1F2937) : Colors.white,
         automaticallyImplyLeading: !widget.rootTab,
         elevation: 0,
         title: Row(children: [

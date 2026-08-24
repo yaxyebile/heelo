@@ -445,7 +445,7 @@ class _StoreSetupViewState extends State<StoreSetupView> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0F172A))),
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF1F2937))),
                 Text(subtitle, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
               ],
             ),
@@ -512,7 +512,7 @@ class _StoreSetupViewState extends State<StoreSetupView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+        Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
         const SizedBox(height: 6),
         Text(subtitle, style: const TextStyle(color: Color(0xFF64748B), fontSize: 14, fontWeight: FontWeight.w500)),
       ],

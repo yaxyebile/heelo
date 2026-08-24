@@ -33,11 +33,12 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String?> login(String email, String password) async {
+  Future<String?> login(String identifier, String password) async {
     _isLoading = true;
     notifyListeners();
 
     try {
+      final email = identifier.contains('@') ? identifier : "${identifier.replaceAll('+', '').replaceAll(' ', '')}@emara.so";
       final user = await SupabaseService.loginProfile(email, password);
       if (user != null) {
         if (user.isBanned) {
@@ -59,12 +60,11 @@ class AuthProvider extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
-    return 'Email ama password waa khalad';
+    return 'Nambar/Email ama password waa khalad';
   }
 
   Future<String?> signup({
     required String name,
-    required String email,
     required String phone,
     required String password,
   }) async {
@@ -72,10 +72,11 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final email = "${phone.replaceAll('+', '').replaceAll(' ', '')}@emara.so";
       if (await SupabaseService.emailExists(email)) {
         _isLoading = false;
         notifyListeners();
-        return 'Email hormar lagu diwaan-geliyay';
+        return 'Nambarkaan hormar ayaa loo diiwaan-geliyay';
       }
 
       final newUser = AppUser(

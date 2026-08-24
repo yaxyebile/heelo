@@ -4,6 +4,8 @@ import '../../providers/marketplace_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/order.dart';
 import '../../models/product.dart';
+import '../../models/property_booking.dart';
+import '../delivery/live_tracking_view.dart';
 
 class OrdersView extends StatelessWidget {
   const OrdersView({super.key});
@@ -23,35 +25,165 @@ class OrdersView extends StatelessWidget {
 
     final myOrders = market.getOrdersByUser(auth.currentUser!.id)
       ..sort((a, b) => b.date.compareTo(a.date));
+    
+    final myBookings = market.propertyBookings
+        .where((b) => b.userId == auth.currentUser!.id)
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0, centerTitle: true, automaticallyImplyLeading: false,
-        title: const Text("My Orders",
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF0F172A))),
-      ),
-      body: myOrders.isEmpty
-        ? _empty()
-        : ListView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-            physics: const BouncingScrollPhysics(),
-            itemCount: myOrders.length,
-            itemBuilder: (_, i) => _orderCard(context, market, auth, myOrders[i]),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+          title: const Text("My Orders & Bookings",
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF1F2937))),
+          bottom: const TabBar(
+            indicatorColor: Color(0xFF2563EB),
+            labelColor: Color(0xFF2563EB),
+            unselectedLabelColor: Color(0xFF64748B),
+            labelStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
+            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            tabs: [
+              Tab(text: "Dalabyada"),
+              Tab(text: "Carbunta"),
+            ],
           ),
+        ),
+        body: TabBarView(
+          children: [
+            // ── Tab 1: Orders ───────────────────────────────────────────
+            RefreshIndicator(
+              onRefresh: () => market.refresh(),
+              child: myOrders.isEmpty
+                ? _empty("No orders yet", "Your orders will appear here", Icons.receipt_long_outlined)
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                    itemCount: myOrders.length,
+                    itemBuilder: (_, i) => _orderCard(context, market, auth, myOrders[i]),
+                  ),
+            ),
+            // ── Tab 2: Property Bookings ────────────────────────────────
+            RefreshIndicator(
+              onRefresh: () => market.refresh(),
+              child: myBookings.isEmpty
+                ? _empty("Wax carbun ah ma jiraan", "Halkan ayaa lagu soo bandhigayaa guryaha aad carbunto", Icons.bookmark_border_rounded)
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                    itemCount: myBookings.length,
+                    itemBuilder: (_, i) => _bookingCard(myBookings[i]),
+                  ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _empty() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+  Widget _empty(String title, String subtitle, IconData icon) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
     Container(width: 100, height: 100,
       decoration: const BoxDecoration(color: Color(0xFFF1F5F9), shape: BoxShape.circle),
-      child: const Icon(Icons.receipt_long_outlined, size: 48, color: Color(0xFFCBD5E1))),
+      child: Icon(icon, size: 48, color: const Color(0xFFCBD5E1))),
     const SizedBox(height: 20),
-    const Text("No orders yet", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Color(0xFF94A3B8))),
+    Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Color(0xFF94A3B8))),
     const SizedBox(height: 8),
-    const Text("Your orders will appear here", style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 14)),
+    Text(subtitle, style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 14)),
   ]));
+
+  Widget _bookingCard(PropertyBooking booking) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 16, offset: const Offset(0, 6))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade100))),
+            child: Row(children: [
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text("Carbun #${booking.id.substring(0, 8).toUpperCase()}",
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF1F2937))),
+                const SizedBox(height: 3),
+                Text(_formatDate(booking.createdAt),
+                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w600)),
+              ])),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: _bookingStatusColor(booking.status).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20)),
+                child: Text(_bookingStatusLabel(booking.status).toUpperCase(),
+                  style: TextStyle(color: _bookingStatusColor(booking.status),
+                    fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+              ),
+            ]),
+          ),
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(booking.propertyTitle,
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF1F2937))),
+                const SizedBox(height: 4),
+                Text("${booking.listingType == 'sale' ? 'Guri Iib Ah' : 'Guri Kiro Ah'} • ${booking.propertyType}",
+                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+          // Footer
+          Container(
+            margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3E0), // Orange tint for properties
+              borderRadius: BorderRadius.circular(14)
+            ),
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   const Text("Lacagta Carbunta (20%)", style: TextStyle(fontSize: 10, color: Color(0xFFB45309), fontWeight: FontWeight.bold)),
+                   Text(booking.paymentMethod == 'evc' ? "EVC Plus" : "eDahab",
+                      style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFE65100), fontSize: 12)),
+                ],
+              ),
+              Text("\$${booking.depositAmount.toStringAsFixed(2)}",
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFFFF6B00))),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _bookingStatusColor(BookingStatus s) {
+    switch (s) {
+      case BookingStatus.pending:   return const Color(0xFFFFB800);
+      case BookingStatus.approved:  return const Color(0xFF00AA5B);
+      case BookingStatus.cancelled: return const Color(0xFFEF4444);
+    }
+  }
+
+  String _bookingStatusLabel(BookingStatus s) {
+    switch (s) {
+      case BookingStatus.pending:   return "Sugeysa";
+      case BookingStatus.approved:  return "La Ansixiyay";
+      case BookingStatus.cancelled: return "La Diiday";
+    }
+  }
 
   Widget _orderCard(
       BuildContext context, MarketplaceProvider market, AuthProvider auth, Order order) {
@@ -71,7 +203,7 @@ class OrdersView extends StatelessWidget {
           child: Row(children: [
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text("Order #${order.id.substring(0, 8).toUpperCase()}",
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF0F172A))),
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF1F2937))),
               const SizedBox(height: 3),
               Text(_formatDate(order.date),
                 style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w600)),
@@ -108,7 +240,7 @@ class OrdersView extends StatelessWidget {
               Expanded(child: Text(item.productName, maxLines: 1, overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF374151)))),
               Text("\$${(item.price * item.quantity).toStringAsFixed(2)}",
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF0F172A))),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Color(0xFF1F2937))),
             ]),
           )).toList()),
         ),
@@ -135,6 +267,31 @@ class OrdersView extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF00AA5B))),
           ]),
         ),
+        if (order.status == OrderStatus.outForDelivery)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LiveTrackingView(
+                      orderId: order.id,
+                      isDriver: false,
+                    ),
+                  ),
+                ),
+                icon: const Icon(Icons.location_on_rounded, size: 18),
+                label: const Text('Live Tracking (Raad-raac)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B5CF6),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ),
         if (order.status == OrderStatus.delivered && order.items.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),

@@ -12,7 +12,15 @@ import 'admin_stores_revenue_view.dart';
 import 'admin_payment_settings_view.dart';
 import 'admin_coupons_view.dart';
 import 'admin_users_view.dart';
+import 'admin_cargo_ads_view.dart';
+import 'admin_property_listings_view.dart';
+import 'admin_property_bookings_view.dart';
+import 'admin_second_hand_view.dart';
 import '../chat/admin_chat_list_view.dart';
+import 'roles_management/admin_roles_dashboard.dart';
+import 'admin_technician_pricing_view.dart';
+import 'admin_technician_bookings_view.dart';
+import 'admin_register_technician_view.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/widgets/colorful_hello.dart';
 
@@ -31,14 +39,16 @@ class AdminDashboardView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: () => market.refresh(),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          slivers: [
           // ── Header ────────────────────────────────────────────────
           SliverAppBar(
             pinned: true, expandedHeight: 180,
             backgroundColor: Colors.white,
-            foregroundColor: const Color(0xFF0F172A),
+            foregroundColor: const Color(0xFF1F2937),
             elevation: 0, automaticallyImplyLeading: false,
             actions: [
               Padding(
@@ -46,7 +56,7 @@ class AdminDashboardView extends StatelessWidget {
                 child: CircleAvatar(
                   backgroundColor: Colors.white.withOpacity(0.15),
                 child: IconButton(
-                  icon: const Icon(Icons.logout_rounded, color: Color(0xFF0F172A), size: 20),
+                  icon: const Icon(Icons.logout_rounded, color: Color(0xFF1F2937), size: 20),
                   onPressed: () => auth.logout(),
                 ),
                 ),
@@ -118,7 +128,7 @@ class AdminDashboardView extends StatelessWidget {
                 const SizedBox(height: 32),
 
                 // ── Quick Actions ─────────────────────────────────────
-                const Text("Quick Actions", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+                const Text("Quick Actions", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
                 const SizedBox(height: 16),
                 GridView.count(
                   crossAxisCount: 2, shrinkWrap: true,
@@ -151,10 +161,35 @@ class AdminDashboardView extends StatelessWidget {
                       () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminCouponsView()))),
                     _actionCard(Icons.upload_file_rounded, "Export Orders",
                       const Color(0xFF64748B), const Color(0xFFF1F5F9),
-                      () => Share.share(market.exportOrdersCsv(), subject: 'Helo Market Orders')),
+                      () => Share.share(market.exportOrdersCsv(), subject: 'EMARA Orders')),
                     _actionCard(Icons.block_rounded, "Ban Users",
                       const Color(0xFFEF4444), const Color(0xFFFFF1F2),
                       () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminUsersView()))),
+                    _actionCard(Icons.flight_takeoff_rounded, "Cargo Ads",
+                      const Color(0xFF0A0E27), const Color(0xFFEFF6FF),
+                      () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminCargoAdsView()))),
+                    _actionCard(Icons.home_work_rounded, "Real Estate",
+                      const Color(0xFFFF6B00), const Color(0xFFFFF3E0),
+                      () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminPropertyListingsView()))),
+                    _actionCard(Icons.bookmark_added_rounded, "Carbunta (Bookings)",
+                      const Color(0xFFE65100), const Color(0xFFFFF3E0),
+                      () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminPropertyBookingsView()))),
+                    _actionCard(Icons.manage_accounts_rounded, "Roles Mgmt",
+                      const Color(0xFF6366F1), const Color(0xFFEEF2FF),
+                      () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminRolesDashboard()))),
+                    _actionCard(Icons.swap_horiz_rounded, "Second Hand",
+                      const Color(0xFF2563EB), const Color(0xFFF5F3FF),
+                      () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminSecondHandView()))),
+                    // ── Farsamo ──
+                    _actionCard(Icons.price_change_rounded, "Farsamo Lacagaha",
+                      const Color(0xFFF97316), const Color(0xFFFFF3E0),
+                      () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTechnicianPricingView()))),
+                    _actionCard(Icons.assignment_rounded, "Farsamo Dalbashyo",
+                      const Color(0xFF2563EB), const Color(0xFFEFF6FF),
+                      () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTechnicianBookingsView()))),
+                    _actionCard(Icons.handyman_rounded, "Diiwaan. Farsamo",
+                      const Color(0xFFF97316), const Color(0xFFFFF3E0),
+                      () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminRegisterTechnicianView()))),
                   ],
                 ),
 
@@ -182,13 +217,14 @@ class AdminDashboardView extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
   }
 
   Widget _sectionHeader(String title, String sub) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+      Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(color: const Color(0xFFFFF3E0), borderRadius: BorderRadius.circular(20)),
@@ -222,7 +258,7 @@ class AdminDashboardView extends StatelessWidget {
           decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(14)),
           child: Icon(icon, color: color, size: 22)),
         const Spacer(),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: Color(0xFF0F172A))),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: Color(0xFF1F2937))),
         const SizedBox(height: 2),
         Text(label, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w700)),
       ]),
@@ -244,7 +280,7 @@ class AdminDashboardView extends StatelessWidget {
             child: Icon(icon, color: color, size: 20)),
           const SizedBox(width: 12),
           Expanded(child: Text(label,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF0F172A)))),
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1F2937)))),
           Icon(Icons.chevron_right_rounded, color: Colors.grey.shade300, size: 18),
         ]),
       ),
@@ -303,7 +339,7 @@ class AdminDashboardView extends StatelessWidget {
           child: store.logo.isEmpty ? const Icon(Icons.store_rounded, color: Colors.grey, size: 24) : null),
         const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(store.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0F172A))),
+          Text(store.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF1F2937))),
           const SizedBox(height: 3),
           Text(store.description, maxLines: 1, overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),

@@ -1,4 +1,4 @@
-package com.mogadishu.market.mogadishu_market
+package com.emara.app
 
 import io.flutter.embedding.android.FlutterActivity
 

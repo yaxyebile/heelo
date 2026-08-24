@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../providers/marketplace_provider.dart';
 import '../../models/promo_banner.dart';
 import '../../core/widgets/custom_text_field.dart';
+import '../../core/services/upload_service.dart';
 
 class ManagePromosView extends StatefulWidget {
   const ManagePromosView({super.key});
@@ -197,11 +198,36 @@ class _AddPromoSheetState extends State<_AddPromoSheet> {
                     ],
                   ),
                 ),
-              CustomTextField(
-                label: "Image URL",
-                hint: "https://example.com/banner.jpg",
-                controller: _urlCtrl,
-                validator: (v) => v!.isEmpty ? "URL required" : null,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: CustomTextField(
+                      label: "Image URL",
+                      hint: "https://example.com/banner.jpg",
+                      controller: _urlCtrl,
+                      validator: (v) => v!.isEmpty ? "URL required" : null,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.upload_file, color: Color(0xFFFF6B00)),
+                      onPressed: () async {
+                        final url = await UploadService.pickAndUploadImage();
+                        if (url != null) {
+                          setState(() => _urlCtrl.text = url);
+                        }
+                      },
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               CustomTextField(

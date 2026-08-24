@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
-import '../../core/widgets/helo_search_bar.dart';
+import '../../core/widgets/hakabo_search_bar.dart';
 import '../../core/widgets/product_card.dart';
 import '../../providers/marketplace_provider.dart';
 import 'product_details_view.dart';
@@ -36,7 +36,7 @@ class _SearchViewState extends State<SearchView> {
         children: [
           Padding(
             padding: const EdgeInsets.all(20),
-            child: HeloSearchBar(
+            child: HakaboSearchBar(
               hint: 'Search products, brands...',
               onChanged: (v) => setState(() => _query = v),
             ),

@@ -35,7 +35,7 @@ class _AdminChatListViewState extends State<AdminChatListView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
         title: const Text("Support Center", style: TextStyle(fontWeight: FontWeight.w900)),
         centerTitle: true, elevation: 0,

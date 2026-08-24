@@ -69,9 +69,11 @@ class _DepartmentsViewState extends State<DepartmentsView> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
+        child: RefreshIndicator(
+          onRefresh: () => market.refresh(),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            slivers: [
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -220,6 +222,7 @@ class _DepartmentsViewState extends State<DepartmentsView> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../providers/marketplace_provider.dart';
 import '../../providers/auth_provider.dart';
+import 'package:hakabo/core/l10n/app_strings.dart';
+import 'package:hakabo/core/l10n/locale_provider.dart';
 import '../../models/order.dart';
 import '../auth/login_view.dart';
 import 'checkout_view.dart';
@@ -14,6 +16,7 @@ class CartView extends StatelessWidget {
   Widget build(BuildContext context) {
     final market = Provider.of<MarketplaceProvider>(context);
     final auth = Provider.of<AuthProvider>(context);
+    final locale = Provider.of<LocaleProvider>(context);
     final cart = market.cart;
 
     return Scaffold(
@@ -22,20 +25,20 @@ class CartView extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        title: const Text("My Cart", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF0F172A))),
+        title: Text(locale.t('my_cart'), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF1F2937))),
         actions: [
           if (cart.isNotEmpty)
             TextButton(
               onPressed: () => market.clearCart(),
-              child: const Text("Clear", style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w700)),
+              child: Text(locale.t('clear'), style: const TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w700)),
             ),
         ],
       ),
-      body: cart.isEmpty ? _emptyCart(context) : _cartBody(context, market, auth, cart),
+      body: cart.isEmpty ? _emptyCart(context, locale) : _cartBody(context, market, auth, cart, locale),
     );
   }
 
-  Widget _emptyCart(BuildContext context) {
+  Widget _emptyCart(BuildContext context, LocaleProvider locale) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -47,30 +50,30 @@ class CartView extends StatelessWidget {
               color: const Color(0xFFFFF3E0),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.shopping_bag_outlined, size: 64, color: Color(0xFFFF6B00)),
+            child: const Icon(Icons.shopping_bag_outlined, size: 64, color: AppColors.primary),
           ),
           const SizedBox(height: 28),
-          const Text("Your cart is empty", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+          Text(locale.t('your_cart_is_empty'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
           const SizedBox(height: 10),
-          const Text("Add items to start shopping", style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(locale.t('add_items_to_start'), style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.w500)),
           const SizedBox(height: 36),
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF6B00),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               minimumSize: const Size(180, 54),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 0,
             ),
-            child: const Text("Browse Marketplace", style: TextStyle(fontWeight: FontWeight.w800)),
+            child: Text(locale.t('browse_marketplace'), style: const TextStyle(fontWeight: FontWeight.w800)),
           ),
         ],
       ),
     );
   }
 
-  Widget _cartBody(BuildContext context, MarketplaceProvider market, AuthProvider auth, Map<String, List<OrderItem>> cart) {
+  Widget _cartBody(BuildContext context, MarketplaceProvider market, AuthProvider auth, Map<String, List<OrderItem>> cart, LocaleProvider locale) {
     return Column(
       children: [
         Expanded(
@@ -80,16 +83,16 @@ class CartView extends StatelessWidget {
             itemCount: cart.length,
             itemBuilder: (context, i) {
               final storeId = cart.keys.elementAt(i);
-              return _storeGroup(context, storeId, cart[storeId]!, market);
+              return _storeGroup(context, storeId, cart[storeId]!, market, locale);
             },
           ),
         ),
-        _checkoutBar(context, market, auth),
+        _checkoutBar(context, market, auth, locale),
       ],
     );
   }
 
-  Widget _storeGroup(BuildContext context, String storeId, List<OrderItem> items, MarketplaceProvider market) {
+  Widget _storeGroup(BuildContext context, String storeId, List<OrderItem> items, MarketplaceProvider market, LocaleProvider locale) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
@@ -106,27 +109,27 @@ class CartView extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
             child: Row(
               children: [
-                const Icon(Icons.storefront_rounded, color: Color(0xFFFF6B00), size: 20),
+                const Icon(Icons.storefront_rounded, color: AppColors.primary, size: 20),
                 const SizedBox(width: 10),
-                Text(items.first.storeName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0F172A))),
+                Text(AppStrings.translateData(items.first.storeName, locale.language), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF1F2937))),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(8)),
-                  child: const Text("Free Delivery", style: TextStyle(color: Color(0xFF00D285), fontSize: 11, fontWeight: FontWeight.w800)),
+                  child: Text(locale.t('free_delivery'), style: const TextStyle(color: Color(0xFF00D285), fontSize: 11, fontWeight: FontWeight.w800)),
                 ),
               ],
             ),
           ),
           Divider(height: 1, color: Colors.grey.shade100),
-          ...items.map((item) => _cartItem(context, storeId, item, market)),
+          ...items.map((item) => _cartItem(context, storeId, item, market, locale)),
           const SizedBox(height: 8),
         ],
       ),
     );
   }
 
-  Widget _cartItem(BuildContext context, String storeId, OrderItem item, MarketplaceProvider market) {
+  Widget _cartItem(BuildContext context, String storeId, OrderItem item, MarketplaceProvider market, LocaleProvider locale) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
       child: Row(
@@ -151,10 +154,10 @@ class CartView extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text(item.productName,
+                      child: Text(AppStrings.translateData(item.productName, locale.language),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0F172A))),
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF1F2937))),
                     ),
                     GestureDetector(
                       onTap: () => market.removeFromCart(storeId, item.productId),
@@ -168,7 +171,7 @@ class CartView extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text("\$${item.price.toStringAsFixed(0)}",
-                    style: const TextStyle(color: Color(0xFFFF6B00), fontWeight: FontWeight.w900, fontSize: 18)),
+                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w900, fontSize: 18)),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -177,7 +180,7 @@ class CartView extends StatelessWidget {
                       width: 40,
                       alignment: Alignment.center,
                       child: Text("${item.quantity}",
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF0F172A))),
+                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1F2937))),
                     ),
                     _qtyBtn(Icons.add_rounded, () {}),
                   ],
@@ -205,7 +208,7 @@ class CartView extends StatelessWidget {
     );
   }
 
-  Widget _checkoutBar(BuildContext context, MarketplaceProvider market, AuthProvider auth) {
+  Widget _checkoutBar(BuildContext context, MarketplaceProvider market, AuthProvider auth, LocaleProvider locale) {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 36),
       decoration: const BoxDecoration(
@@ -219,17 +222,17 @@ class CartView extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Total Amount", style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.w600)),
-                  SizedBox(height: 2),
-                  Text("VAT included", style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 11)),
+                  Text(locale.t('total_amount'), style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(locale.t('vat_included'), style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 11)),
                 ],
               ),
               Text(
                 "\$${market.cartTotal.toStringAsFixed(2)}",
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 28, color: Color(0xFFFF6B00)),
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 28, color: AppColors.primary),
               ),
             ],
           ),
@@ -245,14 +248,14 @@ class CartView extends StatelessWidget {
             child: Container(
               height: 60,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFFFF6B00), Color(0xFFD84315)]),
+                gradient: const LinearGradient(colors: [AppColors.primary, Color(0xFF00C853)]),
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [
-                  BoxShadow(color: const Color(0xFFFF6B00).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10)),
+                  BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 20, offset: const Offset(0, 10)),
                 ],
               ),
-              child: const Center(
-                child: Text("Place Order", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
+              child: Center(
+                child: Text(locale.t('place_order'), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
               ),
             ),
           ),

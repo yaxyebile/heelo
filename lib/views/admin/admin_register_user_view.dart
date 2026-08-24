@@ -83,7 +83,7 @@ class _AdminRegisterUserViewState extends State<AdminRegisterUserView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
         title: const Text("Register New User", style: TextStyle(fontWeight: FontWeight.w900)),
         centerTitle: true,
@@ -98,7 +98,7 @@ class _AdminRegisterUserViewState extends State<AdminRegisterUserView> {
 
           const SizedBox(height: 32),
           const Text("Register New Account",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
           const SizedBox(height: 20),
 
           // ── Role Picker ────────────────────────────────────────────
@@ -156,7 +156,7 @@ class _AdminRegisterUserViewState extends State<AdminRegisterUserView> {
             child: Container(
               height: 58,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [Color(0xFF0F172A), Color(0xFFD84315)]),
+                gradient: const LinearGradient(colors: [Color(0xFF1F2937), Color(0xFFD84315)]),
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.25), blurRadius: 18, offset: const Offset(0, 8))],
               ),
@@ -180,7 +180,7 @@ class _AdminRegisterUserViewState extends State<AdminRegisterUserView> {
     if (sellers.isEmpty && drivers.isEmpty) return const SizedBox.shrink();
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text("Registered Staff", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
+      const Text("Registered Staff", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF1F2937))),
       const SizedBox(height: 12),
       ...sellers.map((u) => _userTile(u, const Color(0xFFFF6B00), Icons.storefront_rounded, "Seller")),
       ...drivers.map((u) => _userTile(u, const Color(0xFF8B5CF6), Icons.delivery_dining_rounded, "Delivery")),

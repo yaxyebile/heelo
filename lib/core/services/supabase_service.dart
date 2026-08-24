@@ -10,6 +10,11 @@ import '../../models/product.dart';
 import '../../models/promo_banner.dart';
 import '../../models/store.dart';
 import '../../models/user_role.dart';
+import '../../models/cargo_ad.dart';
+import '../../models/property_listing.dart';
+import '../../models/property_booking.dart';
+import '../../models/second_hand_item.dart';
+import '../../models/second_hand_booking.dart';
 
 /// Central Supabase data layer for Mogadishu Market.
 class SupabaseService {
@@ -141,6 +146,177 @@ class SupabaseService {
 
   static Future<void> setSetting(String key, String value) async {
     await client.from('app_settings').upsert({'key': key, 'value': value});
+  }
+
+  // ── Cargo Ads ──────────────────────────────────────────────────────────────
+
+  static Future<List<CargoAd>> fetchCargoAds() async {
+    try {
+      final res = await client
+          .from('cargo_ads')
+          .select()
+          .order('created_at', ascending: false);
+      return (res as List).map((r) => CargoAd.fromJson(r)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> upsertCargoAd(CargoAd ad) async {
+    await client.from('cargo_ads').upsert(ad.toJson());
+  }
+
+  static Future<void> deleteCargoAd(String id) async {
+    await client.from('cargo_ads').delete().eq('id', id);
+  }
+
+  // ── Property Listings ──────────────────────────────────────────────────────
+
+  static Future<List<PropertyListing>> fetchPropertyListings() async {
+    try {
+      final res = await client
+          .from('property_listings')
+          .select()
+          .order('created_at', ascending: false);
+      return (res as List).map((r) => PropertyListing.fromJson(r)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> upsertPropertyListing(PropertyListing listing) async {
+    await client.from('property_listings').upsert(listing.toJson());
+  }
+
+  static Future<void> deletePropertyListing(String id) async {
+    await client.from('property_listings').delete().eq('id', id);
+  }
+
+  // ── Property Bookings ──────────────────────────────────────────────────────
+
+  static Future<List<PropertyBooking>> fetchPropertyBookings() async {
+    try {
+      final res = await client
+          .from('property_bookings')
+          .select()
+          .order('created_at', ascending: false);
+      return (res as List).map((r) => PropertyBooking.fromJson(r)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> upsertPropertyBooking(PropertyBooking booking) async {
+    await client.from('property_bookings').upsert(booking.toJson());
+  }
+
+  static Future<void> deletePropertyBooking(String id) async {
+    await client.from('property_bookings').delete().eq('id', id);
+  }
+
+  // ── Second Hand Items ────────────────────────────────────────────────────────
+
+  static Future<List<SecondHandItem>> fetchSecondHandItems() async {
+    try {
+      final res = await client
+          .from('second_hand_items')
+          .select()
+          .order('created_at', ascending: false);
+      return (res as List).map((r) => SecondHandItem.fromJson(r)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> upsertSecondHandItem(SecondHandItem item) async {
+    await client.from('second_hand_items').upsert(item.toJson());
+  }
+
+  static Future<void> deleteSecondHandItem(String id) async {
+    await client.from('second_hand_items').delete().eq('id', id);
+  }
+
+  // ── Second Hand Bookings ───────────────────────────────────────────────────
+
+  static Future<List<SecondHandBooking>> fetchSecondHandBookings() async {
+    try {
+      final res = await client
+          .from('second_hand_bookings')
+          .select()
+          .order('created_at', ascending: false);
+      return (res as List).map((r) => SecondHandBooking.fromJson(r)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> upsertSecondHandBooking(SecondHandBooking booking) async {
+    await client.from('second_hand_bookings').upsert(booking.toJson());
+  }
+
+  static Future<void> deleteSecondHandBooking(String id) async {
+    await client.from('second_hand_bookings').delete().eq('id', id);
+  }
+
+  // ── Technicians ────────────────────────────────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> fetchTechnicians() async {
+    try {
+      final res = await client.from('technicians').select().order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(res as List);
+    } catch (_) { return []; }
+  }
+
+  static Future<void> upsertTechnician(Map<String, dynamic> tech) async {
+    await client.from('technicians').upsert(tech);
+  }
+
+  static Future<void> deleteTechnician(String id) async {
+    await client.from('technicians').delete().eq('id', id);
+  }
+
+  // ── Technician Bookings ────────────────────────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> fetchTechBookings() async {
+    try {
+      final res = await client.from('tech_bookings').select().order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(res as List);
+    } catch (_) { return []; }
+  }
+
+  static Future<void> insertTechBooking(Map<String, dynamic> booking) async {
+    await client.from('tech_bookings').insert(booking);
+  }
+
+  static Future<void> updateTechBookingStatus(String id, String status) async {
+    await client.from('tech_bookings').update({'status': status}).eq('id', id);
+  }
+
+  // ── Technician Pricing ─────────────────────────────────────────────────────
+
+  static Future<Map<String, Map<String, double>>> fetchTechPricing() async {
+    try {
+      final res = await client.from('tech_pricing').select();
+      final result = <String, Map<String, double>>{};
+      for (final row in res as List) {
+        final cat = row['category'] as String;
+        result[cat] = {
+          'Sare':         (row['price_sare'] as num).toDouble(),
+          'Dhex Dhexaad': (row['price_dhex'] as num).toDouble(),
+          'Hoose':        (row['price_hoose'] as num).toDouble(),
+        };
+      }
+      return result;
+    } catch (_) { return {}; }
+  }
+
+  static Future<void> upsertTechPricing(String category, double sare, double dhex, double hoose) async {
+    await client.from('tech_pricing').upsert({
+      'category': category,
+      'price_sare': sare,
+      'price_dhex': dhex,
+      'price_hoose': hoose,
+    });
   }
 
   // ── Chat ───────────────────────────────────────────────────────────────────

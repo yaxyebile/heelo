@@ -133,3 +133,55 @@ INSERT INTO app_settings (key, value) VALUES
   ('admin_evc', '614227744'),
   ('admin_edahab', '624227744')
 ON CONFLICT (key) DO NOTHING;
+
+-- ── Technicians ──────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS technicians (
+  id         TEXT PRIMARY KEY,
+  name       TEXT NOT NULL,
+  phone      TEXT NOT NULL DEFAULT '',
+  location   TEXT NOT NULL DEFAULT '',
+  specialty  TEXT NOT NULL DEFAULT '',
+  level      TEXT NOT NULL DEFAULT 'Sare',
+  is_active  BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ── Technician Bookings ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS tech_bookings (
+  id           TEXT PRIMARY KEY,
+  category     TEXT NOT NULL,
+  level        TEXT NOT NULL,
+  price        TEXT NOT NULL DEFAULT '',
+  details      TEXT NOT NULL DEFAULT '',
+  location     TEXT NOT NULL DEFAULT '',
+  user_name    TEXT NOT NULL DEFAULT '',
+  user_id      TEXT NOT NULL DEFAULT '',
+  status       TEXT NOT NULL DEFAULT 'pending',
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ── Technician Pricing ────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS tech_pricing (
+  category    TEXT PRIMARY KEY,
+  price_sare  DOUBLE PRECISION NOT NULL DEFAULT 50,
+  price_dhex  DOUBLE PRECISION NOT NULL DEFAULT 30,
+  price_hoose DOUBLE PRECISION NOT NULL DEFAULT 15
+);
+
+-- Seed default pricing
+INSERT INTO tech_pricing (category, price_sare, price_dhex, price_hoose) VALUES
+  ('Korontada',              50, 30, 15),
+  ('Qaboojiyaha (AC)',        60, 35, 20),
+  ('Qasaaladaha',            40, 25, 12),
+  ('Tuubooyinka (Plumbing)', 45, 28, 14),
+  ('Xirfadaha kale',         35, 22, 10)
+ON CONFLICT (category) DO NOTHING;
+
+-- RLS
+ALTER TABLE technicians  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tech_bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tech_pricing  ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_all_technicians"   ON technicians   FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "anon_all_tech_bookings" ON tech_bookings FOR ALL TO anon USING (true) WITH CHECK (true);
+CREATE POLICY "anon_all_tech_pricing"  ON tech_pricing  FOR ALL TO anon USING (true) WITH CHECK (true);

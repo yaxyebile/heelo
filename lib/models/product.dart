@@ -30,6 +30,9 @@ class Product extends HiveObject {
   /// Extra gallery URLs (Supabase); primary image in [image].
   final List<String> gallery;
 
+  final List<String> sizes;
+  final List<String> colors;
+
   Product({
     required this.id,
     required this.name,
@@ -43,6 +46,8 @@ class Product extends HiveObject {
     required this.stock,
     this.isApproved = false,
     this.gallery = const [],
+    this.sizes = const [],
+    this.colors = const [],
   });
 
   List<String> get allImages {
@@ -51,12 +56,44 @@ class Product extends HiveObject {
     return [];
   }
 
-  static List<String> _parseGallery(Map<String, dynamic> json) {
-    final raw = json['images'];
+  static List<String> _parseList(dynamic raw) {
     if (raw is List) {
       return raw.map((e) => e.toString()).where((s) => s.isNotEmpty).toList();
     }
     return [];
+  }
+
+  Product copyWith({
+    String? name,
+    String? description,
+    double? price,
+    String? image,
+    List<String>? gallery,
+    String? categoryId,
+    String? storeId,
+    String? storeName,
+    double? rating,
+    int? stock,
+    bool? isApproved,
+    List<String>? sizes,
+    List<String>? colors,
+  }) {
+    return Product(
+      id: id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      price: price ?? this.price,
+      image: image ?? this.image,
+      categoryId: categoryId ?? this.categoryId,
+      storeId: storeId ?? this.storeId,
+      storeName: storeName ?? this.storeName,
+      rating: rating ?? this.rating,
+      stock: stock ?? this.stock,
+      isApproved: isApproved ?? this.isApproved,
+      gallery: gallery ?? this.gallery,
+      sizes: sizes ?? this.sizes,
+      colors: colors ?? this.colors,
+    );
   }
 
   Map<String, dynamic> toJson() => {
@@ -72,10 +109,14 @@ class Product extends HiveObject {
         'rating': rating,
         'stock': stock,
         'is_approved': isApproved,
+        'sizes': sizes.isNotEmpty ? sizes : [],
+        'colors': colors.isNotEmpty ? colors : [],
       };
 
   factory Product.fromJson(Map<String, dynamic> json) {
-    final gallery = _parseGallery(json);
+    final gallery = _parseList(json['images']);
+    final parsedSizes = _parseList(json['sizes']);
+    final parsedColors = _parseList(json['colors']);
     final primary = json['image'] as String? ?? '';
     return Product(
       id: json['id'] as String,
@@ -90,6 +131,8 @@ class Product extends HiveObject {
       stock: json['stock'] as int? ?? 0,
       isApproved: json['is_approved'] as bool? ?? false,
       gallery: gallery,
+      sizes: parsedSizes,
+      colors: parsedColors,
     );
   }
 }

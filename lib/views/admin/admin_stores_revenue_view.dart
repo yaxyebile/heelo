@@ -19,7 +19,7 @@ class AdminStoresRevenueView extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
         title: const Text("Store Revenue", style: TextStyle(fontWeight: FontWeight.w900)),
         centerTitle: true, elevation: 0,
@@ -32,7 +32,7 @@ class AdminStoresRevenueView extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF0F172A), Color(0xFFD84315)],
+                colors: [Color(0xFF1F2937), Color(0xFFD84315)],
                 begin: Alignment.topLeft, end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(24),
@@ -90,7 +90,7 @@ class AdminStoresRevenueView extends StatelessWidget {
                           const SizedBox(width: 14),
                           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Text(store.name,
-                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF0F172A))),
+                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF1F2937))),
                             Text("${orders.length} orders  •  $paidCount paid",
                               style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
                           ])),

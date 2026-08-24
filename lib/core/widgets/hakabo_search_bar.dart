@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 
-class HeloSearchBar extends StatelessWidget {
+class HakaboSearchBar extends StatelessWidget {
   final String hint;
   final ValueChanged<String>? onChanged;
   final VoidCallback? onFilterTap;
   final bool showFilter;
 
-  const HeloSearchBar({
+  const HakaboSearchBar({
     super.key,
     this.hint = 'Search products, brands...',
     this.onChanged,

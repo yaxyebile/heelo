@@ -12,6 +12,11 @@ import '../models/product.dart';
 import '../models/promo_banner.dart';
 import '../models/store.dart';
 import '../models/user_role.dart';
+import '../models/cargo_ad.dart';
+import '../models/property_listing.dart';
+import '../models/property_booking.dart';
+import '../models/second_hand_item.dart';
+import '../models/second_hand_booking.dart';
 
 class MarketplaceProvider extends ChangeNotifier {
   List<Store> _stores = [];
@@ -20,6 +25,11 @@ class MarketplaceProvider extends ChangeNotifier {
   List<Order> _orders = [];
   List<PromoBanner> _promos = [];
   List<AppUser> _users = [];
+  List<CargoAd> _cargoAds = [];
+  List<PropertyListing> _propertyListings = [];
+  List<PropertyBooking> _propertyBookings = [];
+  List<SecondHandItem> _secondHandItems = [];
+  List<SecondHandBooking> _secondHandBookings = [];
 
   Map<String, List<OrderItem>> _cart = {};
   String _adminEvc = '614227744';
@@ -39,6 +49,21 @@ class MarketplaceProvider extends ChangeNotifier {
   List<Order> get orders => _orders;
   List<PromoBanner> get promos => _promos;
   List<AppUser> get users => _users;
+  List<CargoAd> get cargoAds => _cargoAds;
+  List<PropertyListing> get propertyListings =>
+      _propertyListings.where((p) => p.isApproved && p.isAvailable).toList();
+  List<PropertyListing> get allPropertyListings => _propertyListings;
+  List<PropertyListing> get rentalListings => propertyListings
+      .where((p) => p.listingType == PropertyListingType.rent)
+      .toList();
+  List<PropertyListing> get saleListings => propertyListings
+      .where((p) => p.listingType == PropertyListingType.sale)
+      .toList();
+  List<PropertyBooking> get propertyBookings => _propertyBookings;
+  List<SecondHandItem> get secondHandItems =>
+      _secondHandItems.where((i) => i.status == SecondHandStatus.approved || i.status == SecondHandStatus.reserved).toList();
+  List<SecondHandItem> get allSecondHandItems => _secondHandItems;
+  List<SecondHandBooking> get secondHandBookings => _secondHandBookings;
   Map<String, List<OrderItem>> get cart => _cart;
   String get adminEvc => _adminEvc;
   String get adminEdahab => _adminEdahab;
@@ -74,6 +99,11 @@ class MarketplaceProvider extends ChangeNotifier {
         SupabaseService.fetchProducts(),
         SupabaseService.fetchPromos(),
         SupabaseService.fetchSettings(),
+        SupabaseService.fetchCargoAds(),
+        SupabaseService.fetchPropertyListings(),
+        SupabaseService.fetchPropertyBookings(),
+        SupabaseService.fetchSecondHandItems(),
+        SupabaseService.fetchSecondHandBookings(),
       ]).timeout(_networkTimeout);
 
       _categories = results[0] as List<Category>;
@@ -81,6 +111,11 @@ class MarketplaceProvider extends ChangeNotifier {
       _products = results[2] as List<Product>;
       _promos = results[3] as List<PromoBanner>;
       final settings = results[4] as Map<String, String>;
+      _cargoAds = results[5] as List<CargoAd>;
+      _propertyListings = results[6] as List<PropertyListing>;
+      _propertyBookings = results[7] as List<PropertyBooking>;
+      _secondHandItems  = results[8] as List<SecondHandItem>;
+      _secondHandBookings = results[9] as List<SecondHandBooking>;
       _adminEvc = settings['admin_evc'] ?? _adminEvc;
       _adminEdahab = settings['admin_edahab'] ?? _adminEdahab;
 
@@ -142,6 +177,122 @@ class MarketplaceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> addCargoAd(CargoAd ad) async {
+    await SupabaseService.upsertCargoAd(ad);
+    _cargoAds.insert(0, ad);
+    notifyListeners();
+  }
+
+  Future<void> removeCargoAd(String id) async {
+    await SupabaseService.deleteCargoAd(id);
+    _cargoAds.removeWhere((a) => a.id == id);
+    notifyListeners();
+  }
+
+  // ── Property Listings ─────────────────────────────────────────────────────
+
+  Future<void> addPropertyListing(PropertyListing listing) async {
+    await SupabaseService.upsertPropertyListing(listing);
+    _propertyListings.insert(0, listing);
+    notifyListeners();
+  }
+
+  Future<void> removePropertyListing(String id) async {
+    await SupabaseService.deletePropertyListing(id);
+    _propertyListings.removeWhere((p) => p.id == id);
+    notifyListeners();
+  }
+
+  Future<void> approvePropertyListing(String id) async {
+    final idx = _propertyListings.indexWhere((p) => p.id == id);
+    if (idx == -1) return;
+    final updated = _propertyListings[idx].copyWith(isApproved: true);
+    await SupabaseService.upsertPropertyListing(updated);
+    _propertyListings[idx] = updated;
+    notifyListeners();
+  }
+
+  List<PropertyListing> searchPropertyListings(String query) {
+    if (query.trim().isEmpty) return [];
+    final q = query.toLowerCase();
+    return propertyListings
+        .where((p) =>
+            p.title.toLowerCase().contains(q) ||
+            p.location.toLowerCase().contains(q) ||
+            p.description.toLowerCase().contains(q))
+        .toList();
+  }
+
+  List<PropertyListing> getPendingPropertyListings() =>
+      _propertyListings.where((p) => !p.isApproved).toList();
+
+  // ── Property Bookings ──────────────────────────────────────────────────────
+
+  Future<void> addPropertyBooking(PropertyBooking booking) async {
+    await SupabaseService.upsertPropertyBooking(booking);
+    _propertyBookings.insert(0, booking);
+    notifyListeners();
+  }
+
+  Future<void> approvePropertyBooking(String id) async {
+    final idx = _propertyBookings.indexWhere((b) => b.id == id);
+    if (idx == -1) return;
+    final updated = _propertyBookings[idx].copyWith(status: BookingStatus.approved);
+    await SupabaseService.upsertPropertyBooking(updated);
+    _propertyBookings[idx] = updated;
+    notifyListeners();
+  }
+
+  Future<void> cancelPropertyBooking(String id) async {
+    final idx = _propertyBookings.indexWhere((b) => b.id == id);
+    if (idx == -1) return;
+    final updated = _propertyBookings[idx].copyWith(status: BookingStatus.cancelled);
+    await SupabaseService.upsertPropertyBooking(updated);
+    _propertyBookings[idx] = updated;
+    notifyListeners();
+  }
+
+  // ── Second Hand Items ──────────────────────────────────────────────────────
+
+  Future<void> addSecondHandItem(SecondHandItem item) async {
+    await SupabaseService.upsertSecondHandItem(item);
+    _secondHandItems.insert(0, item);
+    notifyListeners();
+  }
+
+  Future<void> approveSecondHandItem(String id) async {
+    final idx = _secondHandItems.indexWhere((i) => i.id == id);
+    if (idx == -1) return;
+    final updated = _secondHandItems[idx].copyWith(status: SecondHandStatus.approved);
+    await SupabaseService.upsertSecondHandItem(updated);
+    _secondHandItems[idx] = updated;
+    notifyListeners();
+  }
+
+  Future<void> rejectSecondHandItem(String id) async {
+    final idx = _secondHandItems.indexWhere((i) => i.id == id);
+    if (idx == -1) return;
+    final updated = _secondHandItems[idx].copyWith(status: SecondHandStatus.rejected);
+    await SupabaseService.upsertSecondHandItem(updated);
+    _secondHandItems[idx] = updated;
+    notifyListeners();
+  }
+
+  Future<void> markSecondHandSold(String id) async {
+    final idx = _secondHandItems.indexWhere((i) => i.id == id);
+    if (idx == -1) return;
+    final updated = _secondHandItems[idx].copyWith(status: SecondHandStatus.sold);
+    await SupabaseService.upsertSecondHandItem(updated);
+    _secondHandItems[idx] = updated;
+    notifyListeners();
+  }
+
+  Future<void> deleteSecondHandItem(String id) async {
+    await SupabaseService.deleteSecondHandItem(id);
+    _secondHandItems.removeWhere((i) => i.id == id);
+    notifyListeners();
+  }
+
   void addToCart(Product product, int quantity) {
     if (!_cart.containsKey(product.storeId)) {
       _cart[product.storeId] = [];
@@ -150,21 +301,24 @@ class MarketplaceProvider extends ChangeNotifier {
         _cart[product.storeId]!.indexWhere((item) => item.productId == product.id);
     if (existingIndex != -1) {
       final existing = _cart[product.storeId]![existingIndex];
+      int newQty = existing.quantity + quantity;
+      if (newQty > product.stock) newQty = product.stock;
       _cart[product.storeId]![existingIndex] = OrderItem(
         productId: product.id,
         productName: product.name,
         price: product.price,
-        quantity: existing.quantity + quantity,
+        quantity: newQty,
         storeId: product.storeId,
         storeName: product.storeName,
         image: product.image,
       );
     } else {
+      int newQty = quantity > product.stock ? product.stock : quantity;
       _cart[product.storeId]!.add(OrderItem(
         productId: product.id,
         productName: product.name,
         price: product.price,
-        quantity: quantity,
+        quantity: newQty,
         storeId: product.storeId,
         storeName: product.storeName,
         image: product.image,
@@ -181,6 +335,14 @@ class MarketplaceProvider extends ChangeNotifier {
       return;
     }
     final item = _cart[storeId]![idx];
+    
+    // Check stock
+    final pIdx = _products.indexWhere((p) => p.id == productId);
+    if (pIdx != -1) {
+      final product = _products[pIdx];
+      if (qty > product.stock) qty = product.stock;
+    }
+
     _cart[storeId]![idx] = OrderItem(
       productId: item.productId,
       productName: item.productName,
@@ -231,6 +393,17 @@ class MarketplaceProvider extends ChangeNotifier {
       double storeTotal = 0;
       for (var item in items) {
         storeTotal += item.price * item.quantity;
+        
+        // Jar stock-ga alaabta
+        final pIdx = _products.indexWhere((p) => p.id == item.productId);
+        if (pIdx != -1) {
+          final p = _products[pIdx];
+          int cusub = p.stock - item.quantity;
+          if (cusub < 0) cusub = 0;
+          final updatedProduct = p.copyWith(stock: cusub);
+          SupabaseService.upsertProduct(updatedProduct);
+          _products[pIdx] = updatedProduct;
+        }
       }
 
       final order = Order(

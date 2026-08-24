@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
-import '../../core/widgets/helo_search_bar.dart';
+import '../../core/widgets/hakabo_search_bar.dart';
 import '../../models/store.dart';
 import '../../providers/marketplace_provider.dart';
 import 'cart_view.dart';
@@ -63,7 +63,7 @@ class _StoresListViewState extends State<StoresListView> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-            child: HeloSearchBar(
+            child: HakaboSearchBar(
               hint: 'Search stores...',
               showFilter: true,
               onChanged: (v) => setState(() => _query = v),
@@ -109,10 +109,14 @@ class _StoresListViewState extends State<StoresListView> {
                 ? const Center(
                     child: Text('Dukaan lama helin',
                         style: TextStyle(color: AppColors.textSecondaryLight)))
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                    itemCount: stores.length,
-                    itemBuilder: (_, i) => _storeCard(context, stores[i]),
+                : RefreshIndicator(
+                    onRefresh: () => market.refresh(),
+                    child: ListView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                      itemCount: stores.length,
+                      itemBuilder: (_, i) => _storeCard(context, stores[i]),
+                    ),
                   ),
           ),
         ],

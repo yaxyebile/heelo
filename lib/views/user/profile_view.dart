@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
-import '../../core/widgets/helo_logo_title.dart';
-import '../../core/l10n/locale_provider.dart';
+import '../../core/widgets/hakabo_logo_title.dart';
+import 'package:hakabo/core/l10n/locale_provider.dart';
+import 'package:hakabo/core/l10n/app_strings.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/marketplace_provider.dart';
 import 'orders_view.dart';
@@ -26,7 +27,7 @@ class ProfileView extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: const HeloLogoTitle(logoHeight: 24),
+        title: const HakaboLogoTitle(logoHeight: 24),
         centerTitle: true,
         actions: [
           IconButton(
@@ -42,15 +43,16 @@ class ProfileView extends StatelessWidget {
             CircleAvatar(
               radius: 40,
               backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-              child: Text(
-                ((user?.name ?? '').isNotEmpty)
-                    ? user!.name[0].toUpperCase()
-                    : '?',
-                style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primary),
-              ),
+              backgroundImage: user == null ? const AssetImage('assets/images/avatar.png') : null,
+              child: user != null
+                  ? Text(
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primary),
+                    )
+                  : null,
             ),
             const SizedBox(height: 12),
             Text(
@@ -100,12 +102,30 @@ class ProfileView extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.language_rounded, color: AppColors.primary),
               title: Text(locale.t('language')),
-              trailing: Switch(
-                value: locale.isSomali,
-                activeThumbColor: AppColors.primary,
-                onChanged: (_) => locale.toggle(),
+              subtitle: Text(
+                locale.language == AppLanguage.so ? locale.t('somali') 
+                : locale.language == AppLanguage.ar ? locale.t('arabic')
+                : locale.t('english')
               ),
-              subtitle: Text(locale.isSomali ? locale.t('somali') : locale.t('english')),
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+                  builder: (_) => Container(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(locale.t('choose_lang'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 20),
+                        _langTile(context, locale, AppLanguage.en, locale.t('english')),
+                        _langTile(context, locale, AppLanguage.so, locale.t('somali')),
+                        _langTile(context, locale, AppLanguage.ar, locale.t('arabic')),
+                      ],
+                    ),
+                  ),
+                );
+              },
             ),
             _tile(context, Icons.settings_outlined, 'Settings', () {}),
             _tile(context, Icons.help_outline_rounded, 'Help Center', () {}),
@@ -199,6 +219,17 @@ class ProfileView extends StatelessWidget {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
+    );
+  }
+  Widget _langTile(BuildContext context, LocaleProvider lp, AppLanguage lang, String label) {
+    bool selected = lp.language == lang;
+    return ListTile(
+      title: Text(label, style: TextStyle(fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
+      trailing: selected ? const Icon(Icons.check_circle_rounded, color: AppColors.primary) : null,
+      onTap: () {
+        lp.setLanguage(lang);
+        Navigator.pop(context);
+      },
     );
   }
 }

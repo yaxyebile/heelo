@@ -3,17 +3,27 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  static const green     = Color(0xFF00AA5B);
-  static const darkBlue  = Color(0xFF0F172A);
+  // Brand — Orange + Blue
+  static const primary   = Color(0xFFF97316); // Orange
+  static const secondary = Color(0xFF2563EB); // Blue
+  static const green     = Color(0xFFF97316); // alias for legacy → orange
+  static const darkBlue  = Color(0xFF1E3A5F);
   static const white     = Color(0xFFFFFFFF);
   static const lightGray = Color(0xFFF8FAFC);
-  static const textDark  = Color(0xFF0F172A);
+  static const textDark  = Color(0xFF1F2937);
   static const textGray  = Color(0xFF94A3B8);
+
+  // Gradient (orange → blue)
+  static const LinearGradient brandGradient = LinearGradient(
+    colors: [Color(0xFFF97316), Color(0xFF2563EB)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 }
 
 class AppTheme {
-  static const _primary   = AppColors.green;
-  static const _secondary = AppColors.darkBlue;
+  static const _primary   = AppColors.primary;   // orange
+  static const _secondary = AppColors.secondary; // blue
   static const _bg        = AppColors.lightGray;
 
   static ThemeData get light {
@@ -33,9 +43,9 @@ class AppTheme {
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: ZoomPageTransitionsBuilder(),
-          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS:     CupertinoPageTransitionsBuilder(),
           TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
-          TargetPlatform.macOS: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.macOS:   FadeUpwardsPageTransitionsBuilder(),
         },
       ),
       textTheme: GoogleFonts.outfitTextTheme(ThemeData.light().textTheme).apply(
@@ -64,9 +74,7 @@ class AppTheme {
         color: Colors.white,
         margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -108,7 +116,8 @@ class AppTheme {
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         backgroundColor: AppColors.darkBlue,
-        contentTextStyle: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600),
+        contentTextStyle: GoogleFonts.outfit(
+          color: Colors.white, fontWeight: FontWeight.w600),
       ),
     );
   }

@@ -8,12 +8,12 @@ class ColorfulHello extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'assets/images/logo.png',
+      'assets/images/logo/LOOGO.jpeg',
       height: fontSize * 2.5,
       fit: BoxFit.contain,
       errorBuilder: (context, error, stackTrace) {
         return Text(
-          "HELO",
+          "EMARA",
           style: TextStyle(
             fontSize: fontSize,
             fontWeight: FontWeight.w900,

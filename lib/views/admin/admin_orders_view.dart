@@ -24,7 +24,7 @@ class _AdminOrdersViewState extends State<AdminOrdersView> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: const Color(0xFF1F2937),
         foregroundColor: Colors.white,
         title: const Text("Manage Orders", style: TextStyle(fontWeight: FontWeight.w900)),
         centerTitle: true, elevation: 0,
@@ -102,7 +102,7 @@ class _AdminOrdersViewState extends State<AdminOrdersView> {
           child: Row(children: [
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text("Order #${order.id.substring(0, 8).toUpperCase()}",
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF0F172A))),
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF1F2937))),
               const SizedBox(height: 2),
               Text("${store?.name ?? 'Store'}  •  ${order.items.length} items",
                 style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w600)),
@@ -154,7 +154,7 @@ class _AdminOrdersViewState extends State<AdminOrdersView> {
                           style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF0F172A))),
+                              color: Color(0xFF1F2937))),
                     ],
                   ),
                 ),
@@ -201,7 +201,7 @@ class _AdminOrdersViewState extends State<AdminOrdersView> {
                     if (order.customerPhone != null && order.customerPhone!.isNotEmpty)
                       Expanded(
                         child: Text("  •  ${order.customerPhone}",
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF0F172A)),
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Color(0xFF1F2937)),
                           overflow: TextOverflow.ellipsis),
                       ),
                   ]),
