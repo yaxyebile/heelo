@@ -1,4 +1,6 @@
+# =========================================================
 # Miscellaneous
+# =========================================================
 *.class
 *.log
 *.pyc
@@ -16,14 +18,18 @@ analysis_output.txt
 analyze_result.txt
 tmp/
 
+# =========================================================
 # IntelliJ / Android Studio / VS Code
+# =========================================================
 *.iml
 *.ipr
 *.iws
 .idea/
 .vscode/
 
+# =========================================================
 # Environment / Secret Keys
+# =========================================================
 .env
 .env.*
 android/app/key.properties
@@ -32,7 +38,9 @@ android/app/key.properties
 *.p12
 *.pem
 
-# Flutter / Dart / Pub related
+# =========================================================
+# Flutter / Dart / Pub
+# =========================================================
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
@@ -40,11 +48,17 @@ android/app/key.properties
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-build/
-/build/
+
+# =========================================================
+# IMPORTANT:
+# Do NOT ignore build/
+# Cloudflare Pages needs build/web/
+# =========================================================
 /coverage/
 
+# =========================================================
 # Android build artifacts
+# =========================================================
 .gradle/
 android/.gradle/
 android/local.properties
@@ -52,7 +66,9 @@ android/local.properties
 /android/app/profile
 /android/app/release
 
+# =========================================================
 # iOS / macOS build files
+# =========================================================
 ios/Flutter/Generated.xcconfig
 ios/Flutter/app.flt
 ios/Flutter/flutter_export_environment.sh
@@ -62,10 +78,19 @@ ios/Flutter/App.framework
 ios/Runner/GeneratedPluginRegistrant.*
 macos/Flutter/ephemeral/
 
+# =========================================================
 # Desktop (Windows & Linux) ephemeral files
+# =========================================================
 windows/flutter/ephemeral/
 linux/flutter/ephemeral/
 
+# =========================================================
 # Symbolication & Obfuscation
+# =========================================================
 app.*.symbols
 app.*.map.json
+
+# Flutter build files
+build/*
+!build/web/
+!build/web/**
