@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/services/storage_service.dart';
 import 'core/services/supabase_service.dart';
+import 'core/services/notification_service.dart';
+import 'core/services/connectivity_service.dart';
+import 'core/widgets/connectivity_wrapper.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/marketplace_provider.dart';
@@ -25,6 +28,7 @@ void main() async {
   try {
     await SupabaseService.init();
     await StorageService.init();
+    await LocalNotificationService.init();
     runApp(const MyApp());
   } catch (e) {
     runApp(MaterialApp(
@@ -44,6 +48,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ConnectivityService()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => MarketplaceProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
@@ -84,7 +89,9 @@ class EmaraApp extends StatelessWidget {
       ],
       home: Directionality(
         textDirection: locale.isRTL ? TextDirection.rtl : TextDirection.ltr,
-        child: const AuthWrapper(),
+        child: const ConnectivityWrapper(
+          child: AuthWrapper(),
+        ),
       ),
     );
   }

@@ -281,8 +281,14 @@ class _AdminRegisterTechnicianViewState extends State<AdminRegisterTechnicianVie
                         ],
                       ),
                       IconButton(
+                        onPressed: () => _showEditDialog(t),
+                        icon: const Icon(Icons.edit_outlined, color: Color(0xFF2563EB), size: 20),
+                        tooltip: 'Wax ka bixi / Edit',
+                      ),
+                      IconButton(
                         onPressed: () => _delete(t['id']),
                         icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
+                        tooltip: 'Tirtir',
                       ),
                     ],
                   ),
@@ -290,6 +296,89 @@ class _AdminRegisterTechnicianViewState extends State<AdminRegisterTechnicianVie
               const SizedBox(height: 40),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showEditDialog(Map<String, dynamic> t) {
+    final editNameCtrl  = TextEditingController(text: t['name'] ?? '');
+    final editPhoneCtrl = TextEditingController(text: t['phone'] ?? '');
+    final editLocCtrl   = TextEditingController(text: t['location'] ?? '');
+    String editSpec     = t['specialty'] ?? _specialties.first;
+    if (!_specialties.contains(editSpec)) editSpec = _specialties.first;
+    String editLvl      = t['level'] ?? _levels.first;
+    if (!_levels.contains(editLvl)) editLvl = _levels.first;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          title: const Text('Wax ka bixi Farsamo Yaqaanka', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Magaca', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                const SizedBox(height: 4),
+                TextField(controller: editNameCtrl, decoration: _inputDeco('Magaca', Icons.person_rounded)),
+                const SizedBox(height: 12),
+                const Text('Taleefanka', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                const SizedBox(height: 4),
+                TextField(controller: editPhoneCtrl, keyboardType: TextInputType.phone, decoration: _inputDeco('Phone', Icons.phone_rounded)),
+                const SizedBox(height: 12),
+                const Text('Goobta', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                const SizedBox(height: 4),
+                TextField(controller: editLocCtrl, decoration: _inputDeco('Location', Icons.location_on_rounded)),
+                const SizedBox(height: 12),
+                const Text('Xirfada', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  value: editSpec,
+                  decoration: _inputDeco('', Icons.build_circle_rounded),
+                  items: _specialties.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                  onChanged: (v) => setDlgState(() => editSpec = v!),
+                ),
+                const SizedBox(height: 12),
+                const Text('Heerka', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                const SizedBox(height: 4),
+                DropdownButtonFormField<String>(
+                  value: editLvl,
+                  decoration: _inputDeco('', Icons.star_rounded),
+                  items: _levels.map((l) => DropdownMenuItem(value: l, child: Text(l))).toList(),
+                  onChanged: (v) => setDlgState(() => editLvl = v!),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Baaqi')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF97316),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () async {
+                final updated = Map<String, dynamic>.from(t);
+                updated['name']      = editNameCtrl.text.trim();
+                updated['phone']     = editPhoneCtrl.text.trim();
+                updated['location']  = editLocCtrl.text.trim();
+                updated['specialty'] = editSpec;
+                updated['level']     = editLvl;
+                await SupabaseService.upsertTechnician(updated);
+                await _load();
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('✅ Macluumaadkii waa la cusboonaysiiyay!'), backgroundColor: Color(0xFFF97316)),
+                  );
+                }
+              },
+              child: const Text('Keydi Badalaada', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+            ),
+          ],
         ),
       ),
     );

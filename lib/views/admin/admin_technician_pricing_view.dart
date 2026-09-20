@@ -10,11 +10,12 @@ class AdminTechnicianPricingView extends StatefulWidget {
 
 class _AdminTechnicianPricingViewState extends State<AdminTechnicianPricingView> {
   final List<String> _levels = ['Sare', 'Dhex Dhexaad', 'Hoose'];
-  final List<String> _categories = [
+  List<String> _categories = [
     'Korontada',
     'Qaboojiyaha (AC)',
     'Qasaaladaha',
     'Tuubooyinka (Plumbing)',
+    'Solar & Batteriga',
     'Xirfadaha kale',
   ];
 
@@ -29,8 +30,9 @@ class _AdminTechnicianPricingViewState extends State<AdminTechnicianPricingView>
 
   Future<void> _load() async {
     final pricing = await SupabaseService.fetchTechPricing();
+    final allCats = {..._categories, ...pricing.keys}.toList();
     final ctrls = <String, Map<String, TextEditingController>>{};
-    for (final cat in _categories) {
+    for (final cat in allCats) {
       ctrls[cat] = {};
       final levels = pricing[cat] ?? {};
       for (final lvl in _levels) {
@@ -40,6 +42,7 @@ class _AdminTechnicianPricingViewState extends State<AdminTechnicianPricingView>
       }
     }
     setState(() {
+      _categories = allCats;
       _controllers = ctrls;
       _loading = false;
     });
@@ -69,6 +72,50 @@ class _AdminTechnicianPricingViewState extends State<AdminTechnicianPricingView>
     );
   }
 
+  void _addNewCategoryDialog() {
+    final nameCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Ku dar Qayb Farsamo Cusub', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+        content: TextField(
+          controller: nameCtrl,
+          decoration: InputDecoration(
+            hintText: 'Tusaale: Solar, Rinjiyeyn, Alxan...',
+            filled: true,
+            fillColor: const Color(0xFFF8FAFC),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Baaqi')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () {
+              final newCat = nameCtrl.text.trim();
+              if (newCat.isNotEmpty && !_categories.contains(newCat)) {
+                setState(() {
+                  _categories.add(newCat);
+                  _controllers[newCat] = {
+                    'Sare':         TextEditingController(text: '50'),
+                    'Dhex Dhexaad': TextEditingController(text: '30'),
+                    'Hoose':        TextEditingController(text: '15'),
+                  };
+                });
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Ku dar', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -79,6 +126,11 @@ class _AdminTechnicianPricingViewState extends State<AdminTechnicianPricingView>
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
         actions: [
+          IconButton(
+            onPressed: _addNewCategoryDialog,
+            icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF2563EB)),
+            tooltip: 'Ku dar Qayb Cusub',
+          ),
           TextButton.icon(
             onPressed: _save,
             icon: const Icon(Icons.save_rounded, color: Color(0xFFF97316)),

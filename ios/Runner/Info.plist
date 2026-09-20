@@ -51,5 +51,12 @@
 		<string>We need your location to show live tracking for your delivery.</string>
 		<key>NSLocationAlwaysUsageDescription</key>
 		<string>We need your location to track deliveries.</string>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>whatsapp</string>
+			<string>https</string>
+			<string>http</string>
+			<string>tel</string>
+		</array>
 	</dict>
 </plist>

@@ -108,6 +108,23 @@ class _AdminOrdersViewState extends State<AdminOrdersView> {
                 style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w600)),
             ])),
             Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: order.isPickup ? const Color(0xFFF0FDF4) : const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: order.isPickup ? const Color(0xFF00D285) : const Color(0xFF2563EB)),
+              ),
+              child: Text(
+                order.isPickup ? "🚶‍♂️ Pickup" : "🚚 Delivery",
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: order.isPickup ? const Color(0xFF00D285) : const Color(0xFF2563EB),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(20)),
               child: Text(statusLabel,
@@ -117,50 +134,80 @@ class _AdminOrdersViewState extends State<AdminOrdersView> {
         ),
         Divider(height: 1, color: Colors.grey.shade100),
 
-        // Items — dukaan walba alaabtiisa
-        Padding(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Alaabta dukaankan:',
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF64748B))),
-              const SizedBox(height: 8),
-              ...order.items.map(
-                (item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Row(
-                    children: [
-                      Text('${item.quantity}x',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 12,
-                              color: Color(0xFFFF6B00))),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(item.productName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF334155))),
-                      ),
-                      Text(
-                          '\$${(item.price * item.quantity).toStringAsFixed(2)}',
-                          style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1F2937))),
-                    ],
+        // Items — dukaan walba alaabtiisa (Grouped by Store)
+        Builder(
+          builder: (_) {
+            final Map<String, List<OrderItem>> groupedByStore = {};
+            for (var item in order.items) {
+              final sName = (item.storeName.isNotEmpty) ? item.storeName : (store?.name ?? 'Dukaan');
+              groupedByStore.putIfAbsent(sName, () => []).add(item);
+            }
+
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Alaabta Dukaamada (${groupedByStore.length} Dukaamood):',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF64748B)),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  ...groupedByStore.entries.map((entry) {
+                    final sName = entry.key;
+                    final items = entry.value;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.storefront_rounded, size: 14, color: Color(0xFFFF6B00)),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  sName,
+                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF1F2937)),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 10, color: Color(0xFFE2E8F0)),
+                          ...items.map(
+                            (item) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: Row(
+                                children: [
+                                  Text('${item.quantity}x',
+                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Color(0xFFFF6B00))),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(item.productName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                                  ),
+                                  Text('\$${(item.price * item.quantity).toStringAsFixed(2)}',
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF1F2937))),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
 
         // Detail row
@@ -219,6 +266,79 @@ class _AdminOrdersViewState extends State<AdminOrdersView> {
             ),
           ),
 
+        // Driver Cancellation Warning Alert (If driver canceled/released delivery)
+        if (order.canceledByDriverName != null && order.canceledByDriverName!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF1F2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFECDD3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Wadaha "${order.canceledByDriverName}" wuxuu kansalay/fasaxay gaarsiinta dalabkan.',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF9F1239)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // Assigned Driver info widget
+        if (order.deliveryPersonId != null && order.deliveryPersonId!.isNotEmpty) ...[
+          Builder(builder: (_) {
+            final driver = market.getUserById(order.deliveryPersonId!);
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.two_wheeler_rounded, color: Color(0xFF0284C7), size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Wadaha Loo Xilsaaray (Assigned Driver)',
+                            style: TextStyle(fontSize: 10, color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            driver?.name ?? 'Delivery Driver',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                          ),
+                          if (driver?.phone != null && driver!.phone!.isNotEmpty) ...[
+                            const SizedBox(height: 1),
+                            Text(
+                              'Tel: ${driver.phone}',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF0284C7)),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+
         // Action buttons based on status
         Padding(
           padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
@@ -243,10 +363,34 @@ class _AdminOrdersViewState extends State<AdminOrdersView> {
         return _approveWithDriverPicker(context, market, order, drivers);
 
       case OrderStatus.approved:
+        if (order.deliveryPersonId == null) {
+          return _approveWithDriverPicker(context, market, order, drivers);
+        }
+        return Row(children: [
+          Expanded(
+            child: _btn(
+              "Awaiting pickup by driver...",
+              const Color(0xFFFF6B00),
+              null,
+              disabled: true,
+            ),
+          ),
+          const SizedBox(width: 8),
+          OutlinedButton(
+            onPressed: () => _showReassignDriverDialog(context, market, order, drivers),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF2563EB),
+              side: const BorderSide(color: Color(0xFF93C5FD)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Baddal Driver', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+          ),
+        ]);
+
       case OrderStatus.outForDelivery:
         return Row(children: [
           Expanded(child: _btn(
-            order.status == OrderStatus.approved ? "Awaiting pickup..." : "Out for delivery...",
+            "Out for delivery...",
             const Color(0xFF8B5CF6), null, disabled: true)),
         ]);
 
@@ -335,6 +479,74 @@ class _AdminOrdersViewState extends State<AdminOrdersView> {
     const SizedBox(width: 4),
     Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12)),
   ]);
+
+  void _showReassignDriverDialog(
+    BuildContext context,
+    MarketplaceProvider market,
+    Order order,
+    List<AppUser> drivers,
+  ) {
+    String? selectedDriverId = order.deliveryPersonId;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Xilsaar / Baddal Driver', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Dooro driver-ka cusub ee qaadaya dalabkan:', style: TextStyle(fontSize: 13, color: Color(0xFF475569))),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: drivers.any((d) => d.id == selectedDriverId) ? selectedDriverId : null,
+                items: drivers
+                    .map((d) => DropdownMenuItem(
+                          value: d.id,
+                          child: Text('${d.name} (${d.phone ?? "No phone"})'),
+                        ))
+                    .toList(),
+                onChanged: (val) => setS(() => selectedDriverId = val),
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Kansal', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: selectedDriverId == null
+                  ? null
+                  : () async {
+                      Navigator.pop(ctx);
+                      await market.assignDeliveryDriver(order.id, selectedDriverId!);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Driver-ka cusub waa loo xilsaaray dalabka ✓'),
+                            backgroundColor: Color(0xFF00D285),
+                          ),
+                        );
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text('Xaqiiji Xilsaarida', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Color _statusColor(OrderStatus? s) {
     switch (s) {

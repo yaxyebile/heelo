@@ -30,8 +30,19 @@ class Product extends HiveObject {
   /// Extra gallery URLs (Supabase); primary image in [image].
   final List<String> gallery;
 
+  /// Optional video URL (YouTube, MP4, or Supabase-hosted).
+  final String videoUrl;
+
   final List<String> sizes;
   final List<String> colors;
+  final double? originalPrice;
+
+  bool get hasDiscount => originalPrice != null && originalPrice! > price;
+  int get discountPercent => hasDiscount ? (((originalPrice! - price) / originalPrice!) * 100).round() : 0;
+
+  /// 7% platform fee markup applied to every product item
+  double get priceWithFee => double.parse((price * 1.07).toStringAsFixed(2));
+  double get platformFee => double.parse((price * 0.07).toStringAsFixed(2));
 
   Product({
     required this.id,
@@ -46,8 +57,10 @@ class Product extends HiveObject {
     required this.stock,
     this.isApproved = false,
     this.gallery = const [],
+    this.videoUrl = '',
     this.sizes = const [],
     this.colors = const [],
+    this.originalPrice,
   });
 
   List<String> get allImages {
@@ -69,6 +82,7 @@ class Product extends HiveObject {
     double? price,
     String? image,
     List<String>? gallery,
+    String? videoUrl,
     String? categoryId,
     String? storeId,
     String? storeName,
@@ -77,6 +91,7 @@ class Product extends HiveObject {
     bool? isApproved,
     List<String>? sizes,
     List<String>? colors,
+    double? originalPrice,
   }) {
     return Product(
       id: id,
@@ -91,8 +106,10 @@ class Product extends HiveObject {
       stock: stock ?? this.stock,
       isApproved: isApproved ?? this.isApproved,
       gallery: gallery ?? this.gallery,
+      videoUrl: videoUrl ?? this.videoUrl,
       sizes: sizes ?? this.sizes,
       colors: colors ?? this.colors,
+      originalPrice: originalPrice ?? this.originalPrice,
     );
   }
 
@@ -109,8 +126,10 @@ class Product extends HiveObject {
         'rating': rating,
         'stock': stock,
         'is_approved': isApproved,
+        'video_url': videoUrl.isNotEmpty ? videoUrl : null,
         'sizes': sizes.isNotEmpty ? sizes : [],
         'colors': colors.isNotEmpty ? colors : [],
+        'original_price': originalPrice,
       };
 
   factory Product.fromJson(Map<String, dynamic> json) {
@@ -131,8 +150,10 @@ class Product extends HiveObject {
       stock: json['stock'] as int? ?? 0,
       isApproved: json['is_approved'] as bool? ?? false,
       gallery: gallery,
+      videoUrl: json['video_url'] as String? ?? '',
       sizes: parsedSizes,
       colors: parsedColors,
+      originalPrice: (json['original_price'] as num?)?.toDouble(),
     );
   }
 }

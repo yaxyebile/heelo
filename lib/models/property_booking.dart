@@ -18,6 +18,7 @@ class PropertyBooking {
   final PaymentMethod paymentMethod;
   final String transactionPhone;
   final BookingStatus status;
+  final bool isFullyPaid;
   final DateTime createdAt;
 
   PropertyBooking({
@@ -35,8 +36,12 @@ class PropertyBooking {
     required this.paymentMethod,
     required this.transactionPhone,
     this.status = BookingStatus.pending,
+    this.isFullyPaid = false,
     required this.createdAt,
   });
+
+  double get remainingAmount => isFullyPaid ? 0.0 : (totalPrice - depositAmount);
+  double get paidAmount => isFullyPaid ? totalPrice : depositAmount;
 
   String get propertyTypeLabel {
     switch (propertyType) {
@@ -57,6 +62,7 @@ class PropertyBooking {
       listingType == PropertyListingType.rent ? 'Kireysi' : 'Iibsi';
 
   String get statusLabel {
+    if (isFullyPaid) return 'Dhamaystiran';
     switch (status) {
       case BookingStatus.pending:
         return 'Sugeysa Ansixin';
@@ -82,6 +88,7 @@ class PropertyBooking {
         'payment_method': paymentMethod.name,
         'transaction_phone': transactionPhone,
         'status': status.name,
+        'is_fully_paid': isFullyPaid,
         'created_at': createdAt.toUtc().toIso8601String(),
       };
 
@@ -113,6 +120,7 @@ class PropertyBooking {
         (e) => e.name == json['status'],
         orElse: () => BookingStatus.pending,
       ),
+      isFullyPaid: json['is_fully_paid'] as bool? ?? false,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String).toLocal()
           : DateTime.now(),
@@ -121,6 +129,7 @@ class PropertyBooking {
 
   PropertyBooking copyWith({
     BookingStatus? status,
+    bool? isFullyPaid,
   }) {
     return PropertyBooking(
       id: id,
@@ -137,6 +146,7 @@ class PropertyBooking {
       paymentMethod: paymentMethod,
       transactionPhone: transactionPhone,
       status: status ?? this.status,
+      isFullyPaid: isFullyPaid ?? this.isFullyPaid,
       createdAt: createdAt,
     );
   }

@@ -233,7 +233,7 @@ class SellerDashboardView extends StatelessWidget {
                 const SizedBox(height: 12),
                 storeOrders.isEmpty
                   ? _emptyBox("No orders yet", Icons.shopping_bag_outlined)
-                  : Column(children: storeOrders.take(10).map((o) => _orderTile(o)).toList()),
+                  : Column(children: storeOrders.take(10).map((o) => _orderTile(context, market, o)).toList()),
 
                 const SizedBox(height: 80),
               ]),
@@ -342,19 +342,100 @@ class SellerDashboardView extends StatelessWidget {
     ]),
   );
 
-  Widget _orderTile(Order order) {
+  Widget _orderTile(BuildContext context, MarketplaceProvider market, Order order) {
+    final canApprove = order.status == OrderStatus.pending || order.status == OrderStatus.paymentConfirmed;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)]),
-      child: Row(children: [
-        Text("#${order.id.substring(0, 6).toUpperCase()}",
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-        const Spacer(),
-        Text("\$${order.totalAmount.toStringAsFixed(2)}",
-          style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFFF6B00))),
-      ]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Text("#${order.id.substring(0, 6).toUpperCase()}",
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: order.isPickup ? const Color(0xFFF0FDF4) : const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                order.isPickup ? "🚶‍♂️ Pickup" : "🚚 Delivery",
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  color: order.isPickup ? const Color(0xFF00D285) : const Color(0xFF2563EB),
+                ),
+              ),
+            ),
+            const Spacer(),
+            Text("\$${order.totalAmount.toStringAsFixed(2)}",
+              style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFFF6B00))),
+          ]),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  "${order.items.length} items  •  ${order.customerName ?? 'Customer'} (${order.customerPhone ?? ''})",
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: order.status == OrderStatus.approved
+                      ? const Color(0xFFF0FDF4)
+                      : const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  order.status == OrderStatus.approved ? "APPROVED ✓" : "SUGEYSA",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: order.status == OrderStatus.approved ? const Color(0xFF00D285) : const Color(0xFFFFB800),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (canApprove) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 40,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  await market.approveOrder(order.id);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Dalabka waa la ansixiyay! Wadayaasha ayaa hadda arki kara.'),
+                        backgroundColor: Color(0xFF00D285),
+                      ),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.check_circle_rounded, size: 18),
+                label: const Text('Ansixi Dalabka (Approve Order)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00D285),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

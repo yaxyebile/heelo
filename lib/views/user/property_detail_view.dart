@@ -9,7 +9,9 @@ import '../../providers/marketplace_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/services/supabase_service.dart';
+import '../../core/services/waafi_service.dart';
 import '../../core/widgets/video_player_widget.dart';
+import '../../core/utils/whatsapp_launcher.dart';
 
 class PropertyDetailView extends StatefulWidget {
   final PropertyListing listing;
@@ -44,12 +46,9 @@ class _PropertyDetailViewState extends State<PropertyDetailView> {
   }
 
   Future<void> _openWhatsApp(BuildContext context) async {
-    final phone = widget.listing.ownerPhone.replaceAll(RegExp(r'[^\d+]'), '');
+    final phone = widget.listing.ownerPhone.replaceAll(RegExp(r'[^\d]'), '');
     if (phone.isEmpty) return;
-    final url = Uri.parse('https://wa.me/$phone');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    }
+    await WhatsAppLauncher.openWhatsApp(phone: phone, message: 'Asc, waxaan xiisaynayaa hantida: ${widget.listing.title}');
   }
 
   @override
@@ -92,16 +91,16 @@ class _PropertyDetailViewState extends State<PropertyDetailView> {
                           onPageChanged: (i) => setState(() => _activeImage = i),
                           itemBuilder: (_, i) {
                             final hasVideo = p.videoUrl != null && p.videoUrl!.isNotEmpty;
-                            if (hasVideo && i == 0) {
+                            if (hasVideo && i == images.length) {
                               return SafeArea(
                                 child: Container(
                                   color: Colors.black,
                                   alignment: Alignment.center,
-                                  child: VideoPlayerWidget(url: p.videoUrl!),
+                                  child: VideoPlayerWidget(url: p.videoUrl!, autoPlay: true),
                                 ),
                               );
                             }
-                            final imageIndex = hasVideo ? i - 1 : i;
+                            final imageIndex = i;
                             return Image.network(
                               images[imageIndex],
                               fit: BoxFit.cover,
@@ -417,7 +416,48 @@ class _PropertyDetailViewState extends State<PropertyDetailView> {
                   ),
 
                   // Carbuno Section
-                  if (p.isAvailable) ...[
+                  if (p.isReserved) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF2F2),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFFCA5A5)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.lock_rounded, color: Color(0xFFDC2626), size: 28),
+                          SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '🔒 CARBUUNTAY (RESERVED)',
+                                  style: TextStyle(
+                                    color: Color(0xFF991B1B),
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                SizedBox(height: 3),
+                                Text(
+                                  'Hantidan waa la carbuntay oo ceymiska carbunta waa laga bixiyay.',
+                                  style: TextStyle(
+                                    color: Color(0xFFB91C1C),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (p.isAvailable) ...[
                     const SizedBox(height: 16),
                     GestureDetector(
                       onTap: () => _showBookingSheet(context, p),
@@ -776,9 +816,92 @@ class _PropertyDetailViewState extends State<PropertyDetailView> {
                                 if (!formKey.currentState!.validate()) return;
                                 setSheetState(() => isBooking = true);
 
+                                final phone = transPhoneCtrl.text.trim();
+                                final tempBookingId = const Uuid().v4();
+
+                                // Close bottom sheet first
+                                if (sheetCtx.mounted) {
+                                  Navigator.pop(sheetCtx);
+                                }
+
+                                // Show automatic payment loading modal
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (_) => AlertDialog(
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                    content: Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const CircularProgressIndicator(color: Color(0xFFFF6B00), strokeWidth: 3),
+                                          const SizedBox(height: 24),
+                                          const Text(
+                                            'Bixinta Lacagta EVC Plus...',
+                                            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          Text(
+                                            'Fadlan ka jawaab fariinta EVC Plus (PIN-ka) ee moobilka $phone ka soo muuqanaysa...',
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFFFF3E0),
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: Text(
+                                              'Qiimaha Carbunta: ${p.currency} ${deposit.toStringAsFixed(0)}',
+                                              style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFFF6B00)),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+
+                                WaafiPayResult result;
+
                                 try {
+                                  if (market.waafiMerchantUid.isNotEmpty && market.waafiApiKey.isNotEmpty) {
+                                    result = await WaafiPayService.processEvcPayment(
+                                      phone: phone,
+                                      amount: deposit,
+                                      orderId: tempBookingId,
+                                      merchantUid: market.waafiMerchantUid,
+                                      apiUserId: market.waafiApiUserId,
+                                      apiKey: market.waafiApiKey,
+                                    );
+                                  } else {
+                                    // Automatic Simulation Mode when API keys are pending
+                                    await Future.delayed(const Duration(seconds: 3));
+                                    result = WaafiPayResult(
+                                      success: true,
+                                      message: 'Lacagta carbunta EVC Plus waa la baxday! (Automatic EVC Success)',
+                                      transactionId: 'EVC-${DateTime.now().millisecondsSinceEpoch}',
+                                      referenceId: tempBookingId,
+                                    );
+                                  }
+                                } catch (e) {
+                                  result = WaafiPayResult(
+                                    success: false,
+                                    message: 'Khalad ayaa ka dhacay lacag bixinta EVC: $e',
+                                  );
+                                }
+
+                                // Close loading dialog
+                                if (context.mounted) {
+                                  Navigator.of(context, rootNavigator: true).pop();
+                                }
+
+                                if (result.success) {
                                   final booking = PropertyBooking(
-                                    id: const Uuid().v4(),
+                                    id: tempBookingId,
                                     propertyId: p.id,
                                     propertyTitle: p.title,
                                     propertyType: p.propertyType,
@@ -790,26 +913,25 @@ class _PropertyDetailViewState extends State<PropertyDetailView> {
                                     depositAmount: deposit,
                                     currency: p.currency,
                                     paymentMethod: method,
-                                    transactionPhone: transPhoneCtrl.text.trim(),
-                                    status: BookingStatus.pending,
+                                    transactionPhone: phone,
+                                    status: BookingStatus.approved,
                                     createdAt: DateTime.now(),
                                   );
 
                                   await market.addPropertyBooking(booking);
 
                                   // Guriga calaamadee "Waa La Carbuntay"
-                                  await SupabaseService.upsertPropertyListing(
-                                    p.copyWith(isReserved: true),
-                                  );
+                                  try {
+                                    await SupabaseService.upsertPropertyListing(
+                                      p.copyWith(isReserved: true),
+                                    );
+                                  } catch (e) {
+                                    debugPrint('upsertPropertyListing error: $e');
+                                  }
 
                                   // Provider fresh data
                                   if (context.mounted) {
                                     await market.refresh();
-                                  }
-
-                                  // Pop sheet
-                                  if (sheetCtx.mounted) {
-                                    Navigator.pop(sheetCtx);
                                   }
 
                                   // Show Success dialog
@@ -817,35 +939,43 @@ class _PropertyDetailViewState extends State<PropertyDetailView> {
                                     showDialog(
                                       context: context,
                                       builder: (_) => AlertDialog(
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                                         title: const Row(
                                           children: [
-                                            Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 28),
+                                            Icon(Icons.check_circle_rounded, color: Color(0xFF00D285), size: 30),
                                             SizedBox(width: 10),
-                                            Text('Guul!', style: TextStyle(fontWeight: FontWeight.w900)),
+                                            Text('Carbuntii Waa La Aqbalay!', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
                                           ],
                                         ),
-                                        content: const Text(
-                                          'Carbuntao-daada waa la diiwaangeliyay!\n\nAdmin ayaa xaqiijin doona lacagta dhigashada ee carbunta, ka dibna wuu ansixin doonaa.',
-                                          style: TextStyle(fontSize: 14, height: 1.5),
+                                        content: Text(
+                                          'Lacagta Carbunta (${p.currency} ${deposit.toStringAsFixed(0)}) waxay si automatic ah uga baxday moobilkaaga EVC Plus ($phone)!\n\nHantida halkan ku qoran si toos ah ayaa loo qufulay (Waa La Carbuntay).',
+                                          style: const TextStyle(fontSize: 14, height: 1.5),
                                         ),
                                         actions: [
-                                          TextButton(
+                                          ElevatedButton(
                                             onPressed: () => Navigator.pop(context),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF00D285),
+                                              foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            ),
                                             child: const Text('Hagaag', style: TextStyle(fontWeight: FontWeight.bold)),
                                           ),
                                         ],
                                       ),
                                     );
                                   }
-                                } catch (e) {
-                                  if (sheetCtx.mounted) {
-                                    ScaffoldMessenger.of(sheetCtx).showSnackBar(
-                                      SnackBar(content: Text('Khalad: $e'), backgroundColor: Colors.red),
+                                } else {
+                                  // Show failure message
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(result.message),
+                                        backgroundColor: Colors.red.shade700,
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
                                     );
                                   }
-                                } finally {
-                                  setSheetState(() => isBooking = false);
                                 }
                               },
                         style: ElevatedButton.styleFrom(

@@ -3,19 +3,21 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  // Brand — Orange + Blue
-  static const primary   = Color(0xFFF97316); // Orange
-  static const secondary = Color(0xFF2563EB); // Blue
-  static const green     = Color(0xFFF97316); // alias for legacy → orange
-  static const darkBlue  = Color(0xFF1E3A5F);
-  static const white     = Color(0xFFFFFFFF);
-  static const lightGray = Color(0xFFF8FAFC);
-  static const textDark  = Color(0xFF1F2937);
-  static const textGray  = Color(0xFF94A3B8);
+  // Brand Palette (Vibrant Blue #0284C7 primary + Pastel #D2F7FF fills + White)
+  static const primary     = Color(0xFF0284C7); // Rich Sky Blue
+  static const primaryDark = Color(0xFF0369A1); // Deep Accent
+  static const secondary   = Color(0xFF0EA5E9); // Bright Accent
+  static const green       = Color(0xFF0284C7);
+  static const darkBlue    = Color(0xFF0F172A);
+  static const white       = Color(0xFFFFFFFF);
+  static const lightGray   = Color(0xFFF0F9FF); // Soft Tinted Background
+  static const lightPastel = Color(0xFFD2F7FF); // Soft Pastel Blue Fill
+  static const textDark    = Color(0xFF0F172A);
+  static const textGray    = Color(0xFF64748B);
 
-  // Gradient (orange → blue)
+  // Gradient (#0284C7 → #0EA5E9)
   static const LinearGradient brandGradient = LinearGradient(
-    colors: [Color(0xFFF97316), Color(0xFF2563EB)],
+    colors: [Color(0xFF0284C7), Color(0xFF0EA5E9)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

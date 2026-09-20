@@ -21,6 +21,9 @@ import 'notifications_view.dart';
 import 'property_listings_view.dart';
 import 'second_hand_view.dart';
 import 'technicians_view.dart';
+import 'restaurants_list_view.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../core/utils/whatsapp_launcher.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/notification_provider.dart';
 
@@ -52,6 +55,16 @@ class _UserHomeViewState extends State<UserHomeView> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => WhatsAppLauncher.openWhatsApp(),
+        backgroundColor: const Color(0xFF25D366),
+        elevation: 6,
+        icon: const Icon(Icons.chat_rounded, color: Colors.white),
+        label: const Text(
+          'WhatsApp',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
       body: RefreshIndicator(
         color: AppColors.primary,
         onRefresh: () => market.refresh(),
@@ -163,15 +176,46 @@ class _UserHomeViewState extends State<UserHomeView> {
                             const SizedBox(height: 16),
                             _buildTopStores(context, market),
 
+                            // 2.5 Maqaayadaha (Food Delivery)
+                            const SizedBox(height: 32),
+                            _sectionHeader('🍔 Maqaayadaha & Food Delivery', () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const RestaurantsListView()),
+                              );
+                            }),
+                            const SizedBox(height: 16),
+                            _buildRestaurantBanner(context),
+
                             // 3. New Arrivals
                             const SizedBox(height: 32),
-                            _sectionHeader(locale.t('new_arrivals'), () {}),
+                            _sectionHeader(locale.t('new_arrivals'), () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CategoryProductsView(
+                                    title: locale.t('new_arrivals'),
+                                    customProducts: market.nonRestaurantProducts.reversed.toList(),
+                                  ),
+                                ),
+                              );
+                            }),
                             const SizedBox(height: 16),
                             _buildNewArrivals(context, market),
 
                             // 4. Featured Products
                             const SizedBox(height: 32),
-                            _sectionHeader(locale.t('featured'), () {}),
+                            _sectionHeader(locale.t('featured'), () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CategoryProductsView(
+                                    title: locale.t('featured'),
+                                    customProducts: market.featuredProducts,
+                                  ),
+                                ),
+                              );
+                            }),
                             const SizedBox(height: 16),
                             _buildFeatured(context, market),
 
@@ -334,54 +378,92 @@ class _UserHomeViewState extends State<UserHomeView> {
 
   Widget _bannerCard(dynamic b) {
     final locale = Provider.of<LocaleProvider>(context);
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFF97316), Color(0xFF2563EB)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        image: b.imageUrl.isNotEmpty
-            ? DecorationImage(
-                image: NetworkImage(b.imageUrl),
-                fit: BoxFit.cover,
-                colorFilter: ColorFilter.mode(
-                    Colors.black.withValues(alpha: 0.35), BlendMode.darken))
-            : null,
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+    final String url = b.imageUrl?.toString().trim() ?? '';
+    final bool isDirectImage = url.isNotEmpty &&
+        !url.contains('facebook.com') &&
+        !url.contains('fb.watch') &&
+        (url.contains('unsplash.com') ||
+            url.contains('imgur.com') ||
+            url.contains('supabase.co') ||
+            url.endsWith('.png') ||
+            url.endsWith('.jpg') ||
+            url.endsWith('.jpeg') ||
+            url.endsWith('.webp'));
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: Stack(
         children: [
-          Text(
-            b.tag.isNotEmpty ? b.tag : 'SUPER SALE',
-            style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.9),
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1),
-          ),
-          const SizedBox(height: 4),
-          Text(AppStrings.translateData(b.title, locale.language),
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  height: 1.1)),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
+          // Background Gradient
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF1E3A5F), Color(0xFF00AA5B)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
             ),
-            child: Text(
-              b.btnText.isEmpty ? 'Hadda iibso' : b.btnText,
-              style: const TextStyle(
-                  color: Color(0xFF1A3A2F),
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12),
+          ),
+          // Network Image with Error Handling
+          if (isDirectImage)
+            Positioned.fill(
+              child: Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          // Dark Overlay for Contrast
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.35),
+            ),
+          ),
+          // Banner Text & Button Content
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  b.tag.isNotEmpty ? b.tag : 'SUPER SALE',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  AppStrings.translateData(b.title, locale.language),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    b.btnText.isEmpty ? 'Hadda iibso' : b.btnText,
+                    style: const TextStyle(
+                      color: Color(0xFF1A3A2F),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -515,7 +597,7 @@ class _UserHomeViewState extends State<UserHomeView> {
   }
 
   Widget _buildFeatured(BuildContext context, MarketplaceProvider market) {
-    final prods = market.products.where((p) => p.isApproved).take(6).toList();
+    final prods = market.featuredProducts.take(6).toList();
     final locale = Provider.of<LocaleProvider>(context);
     if (prods.isEmpty) return _emptyState(locale.t('no_items'));
     return Padding(
@@ -527,7 +609,7 @@ class _UserHomeViewState extends State<UserHomeView> {
           crossAxisCount: 2,
           mainAxisSpacing: 14,
           crossAxisSpacing: 14,
-          childAspectRatio: 0.85, // Even smaller
+          childAspectRatio: 0.70,
         ),
         itemCount: prods.length,
         itemBuilder: (_, i) => ProductCard(
@@ -545,7 +627,7 @@ class _UserHomeViewState extends State<UserHomeView> {
   }
 
   Widget _buildNewArrivals(BuildContext context, MarketplaceProvider market) {
-    final prods = market.products.where((p) => p.isApproved).toList().reversed.take(6).toList();
+    final prods = market.nonRestaurantProducts.reversed.take(6).toList();
     final locale = Provider.of<LocaleProvider>(context);
     if (prods.isEmpty) return _emptyState(locale.t('no_items'));
     return SizedBox(
@@ -590,8 +672,8 @@ class _UserHomeViewState extends State<UserHomeView> {
                     builder: (_) => const PropertyListingsView(initialTab: 0)),
               ),
               child: Container(
-                height: 110,
-                padding: const EdgeInsets.all(18),
+                height: 120,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFF1E3A5F), Color(0xFF2563EB)],
@@ -612,23 +694,23 @@ class _UserHomeViewState extends State<UserHomeView> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(Icons.vpn_key_rounded,
-                          color: Colors.white, size: 20),
+                          color: Colors.white, size: 18),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
                     const Text('Kireysi',
                         style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
-                            fontSize: 15)),
+                            fontSize: 14)),
                     const Text('Guryaha & Dhulalka',
                         style:
-                            TextStyle(color: Colors.white70, fontSize: 11)),
+                            TextStyle(color: Colors.white70, fontSize: 10.5)),
                   ],
                 ),
               ),
@@ -643,8 +725,8 @@ class _UserHomeViewState extends State<UserHomeView> {
                     builder: (_) => const PropertyListingsView(initialTab: 1)),
               ),
               child: Container(
-                height: 110,
-                padding: const EdgeInsets.all(18),
+                height: 120,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Color(0xFF7C1B1B), Color(0xFFEF4444)],
@@ -665,23 +747,23 @@ class _UserHomeViewState extends State<UserHomeView> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(Icons.sell_rounded,
-                          color: Colors.white, size: 20),
+                          color: Colors.white, size: 18),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
                     const Text('Iibsi',
                         style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
-                            fontSize: 15)),
+                            fontSize: 14)),
                     const Text('Guryaha & Dhulalka',
                         style:
-                            TextStyle(color: Colors.white70, fontSize: 11)),
+                            TextStyle(color: Colors.white70, fontSize: 10.5)),
                   ],
                 ),
               ),
@@ -852,6 +934,73 @@ class _UserHomeViewState extends State<UserHomeView> {
                     fontSize: 12.5)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRestaurantBanner(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GestureDetector(
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const RestaurantsListView()),
+        ),
+        child: Container(
+          height: 110,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFE11D48), Color(0xFFBE123C)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFE11D48).withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text('DISCOUNTS & SPECIAL OFFERS',
+                          style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Maqaayadaha & Fast Food',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
+                    const SizedBox(height: 2),
+                    const Text('Soo dalbo cuntooyinka kulul ee magaalada',
+                        style: TextStyle(color: Colors.white70, fontSize: 11)),
+                  ],
+                ),
+              ),
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.18),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.restaurant_rounded, color: Colors.white, size: 28),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

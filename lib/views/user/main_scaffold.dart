@@ -3,15 +3,14 @@ import 'package:provider/provider.dart';
 import 'home_view.dart';
 import 'departments_view.dart';
 import 'stores_list_view.dart';
-import 'property_listings_view.dart';
-import 'second_hand_view.dart';
-import 'technicians_view.dart';
+import 'other_services_view.dart';
 import 'profile_tab.dart';
 import '../../core/constants/colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/marketplace_provider.dart';
 import 'package:hakabo/core/l10n/locale_provider.dart';
 import 'package:hakabo/core/l10n/app_strings.dart';
+import '../web/web_layout_shell.dart';
 
 class MainScaffold extends StatefulWidget {
   final int initialTab;
@@ -22,7 +21,7 @@ class MainScaffold extends StatefulWidget {
 }
 
 class _MainScaffoldState extends State<MainScaffold> {
-  static const _tabCount = 7;
+  static const _tabCount = 5;
 
   late int _currentIndex;
   late final Set<int> _visitedTabs;
@@ -46,10 +45,8 @@ class _MainScaffoldState extends State<MainScaffold> {
   static const _navItems = [
     _NavSpec(Icons.home_outlined, Icons.home_rounded, 'home'),
     _NavSpec(Icons.grid_view_outlined, Icons.grid_view_rounded, 'categories'),
-    _NavSpec(Icons.local_shipping_outlined, Icons.local_shipping_rounded, 'deliveries'),
-    _NavSpec(Icons.handyman_outlined, Icons.handyman_rounded, 'Farsamo'),
-    _NavSpec(Icons.home_work_outlined, Icons.home_work_rounded, 'realestate'),
-    _NavSpec(Icons.swap_horiz_outlined, Icons.swap_horiz_rounded, 'secondhand'),
+    _NavSpec(Icons.storefront_outlined, Icons.storefront_rounded, 'deliveries'),
+    _NavSpec(Icons.widgets_outlined, Icons.widgets_rounded, 'Adeegyo'),
     _NavSpec(Icons.person_outline_rounded, Icons.person_rounded, 'profile'),
   ];
 
@@ -60,7 +57,6 @@ class _MainScaffoldState extends State<MainScaffold> {
     final locale = Provider.of<LocaleProvider>(context);
     final authKey = auth.currentUser?.id ?? 'guest';
 
-
     Widget pageFor(int i) {
       switch (i) {
         case 0:
@@ -70,12 +66,8 @@ class _MainScaffoldState extends State<MainScaffold> {
         case 2:
           return const StoresListView(rootTab: true);
         case 3:
-          return const TechniciansView();
+          return const OtherServicesView();
         case 4:
-          return const PropertyListingsView();
-        case 5:
-          return const SecondHandView();
-        case 6:
           return ProfileTab(key: ValueKey('profile-$authKey'));
         default:
           return const SizedBox.shrink();
@@ -89,7 +81,9 @@ class _MainScaffoldState extends State<MainScaffold> {
           : const SizedBox.shrink(),
     );
 
-    return Scaffold(
+    final bool isDesktop = MediaQuery.of(context).size.width >= 850;
+
+    final content = Scaffold(
       backgroundColor: Colors.white,
       body: Column(
         children: [
@@ -129,8 +123,21 @@ class _MainScaffoldState extends State<MainScaffold> {
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNav(locale),
+      bottomNavigationBar: isDesktop ? null : _buildBottomNav(locale),
     );
+
+    if (isDesktop) {
+      return WebLayoutShell(
+        currentTab: _currentIndex,
+        onTabSelected: (tab) => setState(() {
+          _currentIndex = tab;
+          _visitedTabs.add(tab);
+        }),
+        child: content,
+      );
+    }
+
+    return content;
   }
 
   Widget _buildBottomNav(LocaleProvider locale) {
@@ -149,7 +156,7 @@ class _MainScaffoldState extends State<MainScaffold> {
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 72,
+          height: 68,
           child: Row(
             children: List.generate(_navItems.length, (i) {
               return Expanded(child: _navItem(i, _navItems[i], locale));
@@ -162,6 +169,8 @@ class _MainScaffoldState extends State<MainScaffold> {
 
   Widget _navItem(int index, _NavSpec spec, LocaleProvider locale) {
     final selected = _currentIndex == index;
+    final String labelText = spec.label == 'Adeegyo' ? 'Adeegyo' : locale.t(spec.label);
+
     return GestureDetector(
       onTap: () => setState(() {
         _currentIndex = index;
@@ -188,11 +197,11 @@ class _MainScaffoldState extends State<MainScaffold> {
           ),
           const SizedBox(height: 2),
           Text(
-            spec.label == 'Farsamo' ? 'Farsamo' : locale.t(spec.label),
+            labelText,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 10,
+              fontSize: 10.5,
               fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
               color: selected ? AppColors.primary : const Color(0xFF94A3B8),
             ),

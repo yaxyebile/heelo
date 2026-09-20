@@ -32,6 +32,7 @@ class Store extends HiveObject {
   final String? edahabNumber;
 
   final bool isBanned;
+  final bool isRestaurant;
 
   Store({
     required this.id,
@@ -48,6 +49,7 @@ class Store extends HiveObject {
     this.evcNumber,
     this.edahabNumber,
     this.isBanned = false,
+    this.isRestaurant = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -65,6 +67,7 @@ class Store extends HiveObject {
         'evc_number': evcNumber,
         'edahab_number': edahabNumber,
         'is_banned': isBanned,
+        'is_restaurant': isRestaurant,
       };
 
   factory Store.fromJson(Map<String, dynamic> json) => Store(
@@ -82,5 +85,6 @@ class Store extends HiveObject {
         evcNumber: json['evc_number'] as String?,
         edahabNumber: json['edahab_number'] as String?,
         isBanned: json['is_banned'] as bool? ?? false,
+        isRestaurant: json['is_restaurant'] as bool? ?? false,
       );
 }

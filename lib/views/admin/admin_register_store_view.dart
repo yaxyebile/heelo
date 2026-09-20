@@ -21,6 +21,7 @@ class _AdminRegisterStoreViewState extends State<AdminRegisterStoreView> {
   final _phoneCtrl  = TextEditingController();
   
   bool _loading = false;
+  bool _isRestaurant = false;
 
   @override
   void dispose() {
@@ -49,6 +50,7 @@ class _AdminRegisterStoreViewState extends State<AdminRegisterStoreView> {
       isApproved: true,
       rating: 0.0,
       followers: 0,
+      isRestaurant: _isRestaurant,
     );
 
     await market.registerStore(newStore);
@@ -92,6 +94,18 @@ class _AdminRegisterStoreViewState extends State<AdminRegisterStoreView> {
           _field("Sharaxaadda", Icons.description_outlined, _descCtrl, lines: 3),
           const SizedBox(height: 16),
           _field("Tel. Dukaanka", Icons.phone_android_rounded, _phoneCtrl),
+          const SizedBox(height: 16),
+          SwitchListTile(
+            value: _isRestaurant,
+            onChanged: (v) => setState(() => _isRestaurant = v),
+            activeColor: const Color(0xFFE11D48),
+            title: const Text("🍔 Maqaayad (Restaurant & Fast Food)",
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+            subtitle: const Text("Haddii aad ka dhigto Maqaayad, waxay ka muuqan doontaa qaybta Maqaayadaha.",
+                style: TextStyle(fontSize: 11, color: Colors.grey)),
+            tileColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
           const SizedBox(height: 24),
 
           const Text("Muuqaalka ( URLs )", 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -10,6 +11,7 @@ import '../../core/constants/colors.dart';
 import '../chat/chat_screen.dart';
 import 'cart_view.dart';
 import 'checkout_view.dart';
+import '../../core/widgets/video_player_widget.dart';
 
 class ProductDetailsView extends StatefulWidget {
   final Product product;
@@ -22,7 +24,52 @@ class ProductDetailsView extends StatefulWidget {
 class _ProductDetailsViewState extends State<ProductDetailsView> {
   int _selectedSize = 0;
   int _selectedColor = 0;
+  int _quantity = 1;
   bool _expandedDesc = false;
+  late final PageController _pageCtrl;
+  Timer? _sliderTimer;
+  int _activeItem = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageCtrl = PageController(initialPage: 0);
+    _startSliderTimer();
+  }
+
+  void _startSliderTimer() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final product = widget.product;
+      final images = product.allImages;
+      final totalItems = (product.videoUrl.isNotEmpty ? 1 : 0) + images.length;
+      if (totalItems > 1) {
+        _sliderTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+          if (_pageCtrl.hasClients) {
+            final hasVideo = product.videoUrl.isNotEmpty;
+            if (hasVideo && _activeItem == images.length) {
+              return; // Do not auto-slide if currently on the video page
+            }
+            _activeItem++;
+            if (_activeItem >= totalItems) {
+              _activeItem = 0;
+            }
+            _pageCtrl.animateToPage(
+              _activeItem,
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeInOut,
+            );
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _sliderTimer?.cancel();
+    _pageCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,20 +128,63 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: images.isEmpty
-                  ? _imagePlaceholder()
-                  : images.length == 1
-                      ? Image.network(images.first,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _imagePlaceholder())
-                      : PageView.builder(
-                          itemCount: images.length,
-                          itemBuilder: (_, i) => Image.network(
-                            images[i],
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _imagePlaceholder(),
-                          ),
+              background: (images.isNotEmpty || product.videoUrl.isNotEmpty)
+                  ? Stack(
+                      children: [
+                        PageView.builder(
+                          controller: _pageCtrl,
+                          itemCount: (product.videoUrl.isNotEmpty ? 1 : 0) + images.length,
+                          onPageChanged: (i) => setState(() => _activeItem = i),
+                          itemBuilder: (_, i) {
+                            final hasVideo = product.videoUrl.isNotEmpty;
+                            if (hasVideo && i == images.length) {
+                              return SafeArea(
+                                child: Container(
+                                  color: Colors.black,
+                                  alignment: Alignment.center,
+                                  child: VideoPlayerWidget(
+                                    url: product.videoUrl,
+                                    autoPlay: true,
+                                  ),
+                                ),
+                              );
+                            }
+                            final imageIndex = i;
+                            return Image.network(
+                              images[imageIndex],
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder: (c, e, s) => _imagePlaceholder(),
+                            );
+                          },
                         ),
+                        if ((product.videoUrl.isNotEmpty ? 1 : 0) + images.length > 1)
+                          Positioned(
+                            bottom: 14,
+                            left: 0,
+                            right: 0,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(
+                                (product.videoUrl.isNotEmpty ? 1 : 0) + images.length,
+                                (i) => AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: i == _activeItem ? 18 : 6,
+                                  height: 6,
+                                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                                  decoration: BoxDecoration(
+                                    color: i == _activeItem
+                                        ? AppColors.primary
+                                        : Colors.grey.withValues(alpha: 0.5),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    )
+                  : _imagePlaceholder(),
             ),
           ),
           SliverToBoxAdapter(
@@ -136,12 +226,35 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                   ),
                   const SizedBox(height: 12),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text('\$${product.price.toStringAsFixed(2)}',
-                          style: const TextStyle(
+                      Text('\$${product.priceWithFee.toStringAsFixed(2)}',
+                          style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.w900,
-                              color: AppColors.primary)),
+                              color: product.hasDiscount ? const Color(0xFFEF4444) : AppColors.primary)),
+                      if (product.hasDiscount) ...[
+                        const SizedBox(width: 10),
+                        Text('\$${product.originalPrice!.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF94A3B8),
+                                decoration: TextDecoration.lineThrough,
+                                decorationColor: Color(0xFF94A3B8))),
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFDC2626)]),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '-${product.discountPercent}% OFF',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11),
+                          ),
+                        ),
+                      ],
                       const Spacer(),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -156,6 +269,65 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                             fontWeight: FontWeight.w900,
                             color: product.stock > 0 ? AppColors.primary : Colors.red,
                           ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  // ── Quantity Selector ──
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Tirada (Quantity)",
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF1F2937)),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          children: [
+                            InkWell(
+                              onTap: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                width: 34,
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)],
+                                ),
+                                child: Icon(Icons.remove_rounded, size: 18, color: _quantity > 1 ? const Color(0xFF1F2937) : Colors.grey.shade400),
+                              ),
+                            ),
+                            Container(
+                              width: 44,
+                              alignment: Alignment.center,
+                              child: Text(
+                                "$_quantity",
+                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF1F2937)),
+                              ),
+                            ),
+                            InkWell(
+                              onTap: _quantity < product.stock ? () => setState(() => _quantity++) : null,
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                width: 34,
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)],
+                                ),
+                                child: Icon(Icons.add_rounded, size: 18, color: _quantity < product.stock ? const Color(0xFF1F2937) : Colors.grey.shade400),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -359,20 +531,58 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
         child: Row(
           children: [
             GestureDetector(
-              onTap: () {
-                market.addToCart(product, 1);
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const CartView()));
-              },
+              onTap: product.stock > 0
+                  ? () {
+                      market.addToCart(product, _quantity);
+                      ScaffoldMessenger.of(context).clearSnackBars();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '${product.name} ($_quantity) waa lagu daray Cart-ka!',
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                          backgroundColor: const Color(0xFF00D285),
+                          duration: const Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          action: SnackBarAction(
+                            label: 'EAG CART',
+                            textColor: Colors.white,
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const CartView()),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  : () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Alaabtan stock-keedu wuu dhammaaday!'),
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                    },
               child: Container(
                 width: 52,
                 height: 52,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
+                  color: product.stock > 0 ? const Color(0xFFF1F5F9) : Colors.grey.shade200,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.shopping_cart_outlined,
-                    color: AppColors.primary),
+                child: Icon(
+                  Icons.shopping_cart_outlined,
+                  color: product.stock > 0 ? AppColors.primary : Colors.grey,
+                ),
               ),
             ),
             const SizedBox(width: 14),
@@ -390,7 +600,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                 child: ElevatedButton(
                   onPressed: product.stock > 0
                       ? () {
-                          market.addToCart(product, 1);
+                          market.addToCart(product, _quantity);
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (_) => const CheckoutView()),

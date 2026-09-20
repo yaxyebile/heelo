@@ -3,8 +3,9 @@ import 'package:provider/provider.dart';
 import '../../providers/marketplace_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/order.dart';
-import '../../models/product.dart';
 import '../../models/property_booking.dart';
+import '../../core/services/waafi_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../delivery/live_tracking_view.dart';
 
 class OrdersView extends StatelessWidget {
@@ -77,7 +78,7 @@ class OrdersView extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
                     physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                     itemCount: myBookings.length,
-                    itemBuilder: (_, i) => _bookingCard(myBookings[i]),
+                    itemBuilder: (_, i) => _bookingCard(context, market, auth, myBookings[i]),
                   ),
             ),
           ],
@@ -96,7 +97,17 @@ class OrdersView extends StatelessWidget {
     Text(subtitle, style: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 14)),
   ]));
 
-  Widget _bookingCard(PropertyBooking booking) {
+  Widget _bookingCard(BuildContext context, MarketplaceProvider market, AuthProvider auth, PropertyBooking booking) {
+    final statusColor = booking.isFullyPaid
+        ? const Color(0xFF00D285)
+        : _bookingStatusColor(booking.status);
+
+    final statusLabel = booking.isFullyPaid
+        ? "DHAMAYSTIRAN"
+        : _bookingStatusLabel(booking.status);
+
+    final remaining = booking.remainingAmount;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
@@ -121,10 +132,10 @@ class OrdersView extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: _bookingStatusColor(booking.status).withOpacity(0.1),
+                  color: statusColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20)),
-                child: Text(_bookingStatusLabel(booking.status).toUpperCase(),
-                  style: TextStyle(color: _bookingStatusColor(booking.status),
+                child: Text(statusLabel.toUpperCase(),
+                  style: TextStyle(color: statusColor,
                     fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
               ),
             ]),
@@ -138,31 +149,251 @@ class OrdersView extends StatelessWidget {
                 Text(booking.propertyTitle,
                     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF1F2937))),
                 const SizedBox(height: 4),
-                Text("${booking.listingType == 'sale' ? 'Guri Iib Ah' : 'Guri Kiro Ah'} • ${booking.propertyType}",
+                Text("${booking.listingTypeLabel} • ${booking.propertyTypeLabel}",
                     style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
-          // Footer
+          // Payment Box
           Container(
             margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF3E0), // Orange tint for properties
+              color: booking.isFullyPaid ? const Color(0xFFF0FDF4) : const Color(0xFFFFF3E0),
               borderRadius: BorderRadius.circular(14)
             ),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              children: [
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(booking.isFullyPaid ? "Wadarta Lacagta Bixiyay (100%)" : "Lacagta Carbunta (20%)",
+                          style: TextStyle(fontSize: 11, color: booking.isFullyPaid ? const Color(0xFF15803D) : const Color(0xFFB45309), fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text(booking.paymentMethod == PaymentMethod.evcPlus ? "EVC Plus" : "eDahab",
+                          style: TextStyle(fontWeight: FontWeight.w800, color: booking.isFullyPaid ? const Color(0xFF166534) : const Color(0xFFE65100), fontSize: 12)),
+                    ],
+                  ),
+                  Text("\$${booking.paidAmount.toStringAsFixed(2)}",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: booking.isFullyPaid ? const Color(0xFF00D285) : const Color(0xFFFF6B00))),
+                ]),
+                if (!booking.isFullyPaid) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Divider(height: 1, color: Color(0xFFFFE0B2)),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Baqiga Dhiman (80%):",
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF64748B)),
+                      ),
+                      Text(
+                        "\$${remaining.toStringAsFixed(2)}",
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Color(0xFFEF4444)),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // Complete Remaining Payment Button
+          if (!booking.isFullyPaid)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showCompletePaymentDialog(context, market, auth, booking),
+                  icon: const Icon(Icons.payment_rounded, size: 18),
+                  label: Text(
+                    "Dhamaystir Lacagta (\$${remaining.toStringAsFixed(2)})",
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00D285),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showCompletePaymentDialog(
+    BuildContext context,
+    MarketplaceProvider market,
+    AuthProvider auth,
+    PropertyBooking booking,
+  ) {
+    final remaining = booking.remainingAmount;
+    final phone = booking.transactionPhone.isNotEmpty
+        ? booking.transactionPhone
+        : (auth.currentUser?.phone ?? '');
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.payment_rounded, color: Color(0xFF00D285), size: 26),
+            SizedBox(width: 10),
+            Text('Dhamaystir Lacagta', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Waxaad bixinaysaa baqiga dhiman ee 80% ah si aad gebi ahaanba u yeelato/u kireysato hantida "${booking.propertyTitle}".',
+              style: const TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.4),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFDCFCE7)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                   const Text("Lacagta Carbunta (20%)", style: TextStyle(fontSize: 10, color: Color(0xFFB45309), fontWeight: FontWeight.bold)),
-                   Text(booking.paymentMethod == 'evc' ? "EVC Plus" : "eDahab",
-                      style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFE65100), fontSize: 12)),
+                  const Text('Baqiga Dhiman:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF166534))),
+                  Text(
+                    '${booking.currency} \$${remaining.toStringAsFixed(2)}',
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF00D285)),
+                  ),
                 ],
               ),
-              Text("\$${booking.depositAmount.toStringAsFixed(2)}",
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFFFF6B00))),
-            ]),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Kansal', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogCtx); // Close dialog
+
+              // Show loading payment modal
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  content: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(color: Color(0xFF00D285), strokeWidth: 3),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Bixinta Lacagta Baqiga...',
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Fadlan ka jawaab fariinta EVC Plus (PIN-ka) ee moobilka $phone ka soo muuqanaysa...',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+
+              WaafiPayResult result;
+
+              try {
+                if (market.waafiMerchantUid.isNotEmpty && market.waafiApiKey.isNotEmpty) {
+                  result = await WaafiPayService.processEvcPayment(
+                    phone: phone,
+                    amount: remaining,
+                    orderId: 'REM-${booking.id}',
+                    merchantUid: market.waafiMerchantUid,
+                    apiUserId: market.waafiApiUserId,
+                    apiKey: market.waafiApiKey,
+                  );
+                } else {
+                  await Future.delayed(const Duration(seconds: 3));
+                  result = WaafiPayResult(
+                    success: true,
+                    message: 'Lacagta baqiga EVC Plus waa la baxday! (Automatic EVC Success)',
+                    transactionId: 'EVC-REM-${DateTime.now().millisecondsSinceEpoch}',
+                    referenceId: booking.id,
+                  );
+                }
+              } catch (e) {
+                result = WaafiPayResult(success: false, message: 'Khalad: $e');
+              }
+
+              // Close loading dialog
+              if (context.mounted) {
+                Navigator.of(context, rootNavigator: true).pop();
+              }
+
+              if (result.success) {
+                await market.completePropertyBookingPayment(booking.id);
+
+                if (context.mounted) {
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      title: const Row(
+                        children: [
+                          Icon(Icons.check_circle_rounded, color: Color(0xFF00D285), size: 30),
+                          SizedBox(width: 10),
+                          Text('Guul! Lacagta Waa La Dhamaystiray', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 17)),
+                        ],
+                      ),
+                      content: Text(
+                        'Lacagta baqiga dhimayd (${booking.currency} \$${remaining.toStringAsFixed(2)}) waxay si automatic ah uga baxday moobilkaaga EVC Plus ($phone)!\n\nCarbuntan waxay noqotay mid gebi ahaanba la bixiyay (DHAMAYSTIRAN).',
+                        style: const TextStyle(fontSize: 14, height: 1.5),
+                      ),
+                      actions: [
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00D285),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('Hagaag', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(result.message), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00D285),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Bixi Hada', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -187,8 +418,6 @@ class OrdersView extends StatelessWidget {
 
   Widget _orderCard(
       BuildContext context, MarketplaceProvider market, AuthProvider auth, Order order) {
-    final store = market.getStoreById(order.storeId);
-
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
@@ -245,6 +474,82 @@ class OrdersView extends StatelessWidget {
           )).toList()),
         ),
 
+        // ── Delivery Driver Info (If assigned or delivering) ──────
+        if (order.deliveryPersonId != null && order.deliveryPersonId!.isNotEmpty) ...[
+          Builder(builder: (_) {
+            final driver = market.users.where((u) => u.id == order.deliveryPersonId).firstOrNull;
+            return Container(
+              margin: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFBFDBFE)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0284C7).withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.two_wheeler_rounded, color: Color(0xFF0284C7), size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Wadaha Delivery-ga (Driver)',
+                          style: TextStyle(fontSize: 10, color: Color(0xFF64748B), fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          driver?.name ?? 'Wadaha La Xaqiijiyay',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                        ),
+                        if (driver?.phone != null && driver!.phone!.isNotEmpty) ...[
+                          const SizedBox(height: 1),
+                          Text(
+                            'Tel: ${driver.phone}',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF0284C7)),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (driver?.phone != null && driver!.phone!.isNotEmpty)
+                    InkWell(
+                      onTap: () async {
+                        final Uri telUri = Uri.parse('tel:${driver.phone}');
+                        if (await canLaunchUrl(telUri)) {
+                          await launchUrl(telUri);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF00D285),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.phone_rounded, color: Colors.white, size: 14),
+                            SizedBox(width: 4),
+                            Text('Wac', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }),
+        ],
+
         // ── Footer ────────────────────────────────────────────────
         Container(
           margin: const EdgeInsets.fromLTRB(20, 14, 20, 16),
@@ -262,6 +567,22 @@ class OrdersView extends StatelessWidget {
               Text(
                 order.paymentMethod == PaymentMethod.evcPlus ? "EVC Plus" : "eDahab",
                 style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF64748B), fontSize: 13)),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: order.isPickup ? const Color(0xFFF0FDF4) : const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  order.isPickup ? "🚶‍♂️ Pickup" : "🚚 Delivery",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: order.isPickup ? const Color(0xFF00D285) : const Color(0xFF2563EB),
+                  ),
+                ),
+              ),
             ]),
             Text("\$${order.totalAmount.toStringAsFixed(2)}",
               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: Color(0xFF00AA5B))),

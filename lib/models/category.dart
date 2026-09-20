@@ -24,4 +24,16 @@ class Category extends HiveObject {
         name: json['name'] as String,
         icon: json['icon'] as String,
       );
+
+  Category copyWith({
+    String? id,
+    String? name,
+    String? icon,
+  }) {
+    return Category(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      icon: icon ?? this.icon,
+    );
+  }
 }

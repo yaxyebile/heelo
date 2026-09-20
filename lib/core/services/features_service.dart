@@ -82,12 +82,16 @@ class FeaturesService {
 
   // ── Notifications ──────────────────────────────────────────────────────────
 
-  static Future<List<AppNotification>> fetchNotifications(String userId) async {
+  static Future<List<AppNotification>> fetchNotifications(String userId, {String? role}) async {
     try {
+      String filter = 'user_id.eq.$userId,user_id.eq.all';
+      if (role != null && role.isNotEmpty) {
+        filter += ',user_id.eq.$role';
+      }
       final rows = await _db
           .from('app_notifications')
           .select()
-          .eq('user_id', userId)
+          .or(filter)
           .order('created_at', ascending: false)
           .limit(50);
       return (rows as List).map((r) => AppNotification.fromJson(r)).toList();

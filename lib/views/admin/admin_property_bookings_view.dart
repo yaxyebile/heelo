@@ -115,6 +115,50 @@ class _AdminPropertyBookingsViewState extends State<AdminPropertyBookingsView>
     }
   }
 
+  Future<void> _completeBookingPaymentByAdmin(BuildContext context, MarketplaceProvider market, PropertyBooking booking) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Xaqiiji Dhammaan Lacagta', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text('Ma xaqiijisay in baqiga dhiman ee ${booking.currency} ${booking.remainingAmount.toStringAsFixed(0)} EVC/eDahab uu ku soo gaaray si hantidu u noqoto 100% DHAMAYSTIRAN?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Maya')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00D285),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Haa, Dhamaystir'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      if (!context.mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      try {
+        await market.completePropertyBookingPayment(booking.id);
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Lacagta hantida "${booking.propertyTitle}" waa la dhamaystiray (100% Fully Paid)!'),
+            backgroundColor: const Color(0xFF00D285),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } catch (e) {
+        if (context.mounted) {
+          messenger.showSnackBar(
+            SnackBar(content: Text('Khalad: $e'), backgroundColor: Colors.red),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final market = Provider.of<MarketplaceProvider>(context);
@@ -199,6 +243,20 @@ class _AdminPropertyBookingsViewState extends State<AdminPropertyBookingsView>
         final isPending = b.status == BookingStatus.pending;
         final isEvc = b.paymentMethod == PaymentMethod.evcPlus;
 
+        final badgeColor = b.isFullyPaid
+            ? const Color(0xFF2E7D32)
+            : b.status == BookingStatus.approved
+                ? const Color(0xFF2E7D32)
+                : b.status == BookingStatus.cancelled
+                    ? Colors.red
+                    : const Color(0xFFE65100);
+
+        final badgeBg = b.isFullyPaid || b.status == BookingStatus.approved
+            ? const Color(0xFFE8F5E9)
+            : b.status == BookingStatus.cancelled
+                ? const Color(0xFFFFEBEE)
+                : const Color(0xFFFFF3E0);
+
         return Container(
           margin: const EdgeInsets.only(bottom: 14),
           decoration: BoxDecoration(
@@ -233,11 +291,7 @@ class _AdminPropertyBookingsViewState extends State<AdminPropertyBookingsView>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: b.status == BookingStatus.approved
-                            ? const Color(0xFFE8F5E9)
-                            : b.status == BookingStatus.cancelled
-                                ? const Color(0xFFFFEBEE)
-                                : const Color(0xFFFFF3E0),
+                        color: badgeBg,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -245,11 +299,7 @@ class _AdminPropertyBookingsViewState extends State<AdminPropertyBookingsView>
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.w900,
-                          color: b.status == BookingStatus.approved
-                              ? const Color(0xFF2E7D32)
-                              : b.status == BookingStatus.cancelled
-                                  ? Colors.red
-                                  : const Color(0xFFE65100),
+                          color: badgeColor,
                         ),
                       ),
                     ),
@@ -269,27 +319,47 @@ class _AdminPropertyBookingsViewState extends State<AdminPropertyBookingsView>
                     const SizedBox(height: 6),
                     _rowDetail('Habka Xayeysiis:', b.listingTypeLabel),
                     const SizedBox(height: 6),
-                    _rowDetail('Qiimaha Hantida:', '${b.currency} ${b.totalPrice.toStringAsFixed(0)}'),
+                    _rowDetail('Qiimaha Guud:', '${b.currency} ${b.totalPrice.toStringAsFixed(0)}'),
                     const SizedBox(height: 8),
                     
-                    // Deposit highlighting
+                    // Deposit & Remaining highlighting
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: b.isFullyPaid ? const Color(0xFFF0FDF4) : const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
                         children: [
-                          const Text(
-                            'Lacagta Carbunta (20%):',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFFF6B00)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                b.isFullyPaid ? 'Bixiyay (100%):' : 'Lacagta Carbunta (20%):',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: b.isFullyPaid ? const Color(0xFF166534) : const Color(0xFFFF6B00)),
+                              ),
+                              Text(
+                                '${b.currency} ${b.paidAmount.toStringAsFixed(0)}',
+                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: b.isFullyPaid ? const Color(0xFF00D285) : const Color(0xFFFF6B00)),
+                              ),
+                            ],
                           ),
-                          Text(
-                            '${b.currency} ${b.depositAmount.toStringAsFixed(0)}',
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFFFF6B00)),
-                          ),
+                          if (!b.isFullyPaid) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Baqiga Dhiman (80%):',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF64748B)),
+                                ),
+                                Text(
+                                  '${b.currency} ${b.remainingAmount.toStringAsFixed(0)}',
+                                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFFEF4444)),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -348,10 +418,30 @@ class _AdminPropertyBookingsViewState extends State<AdminPropertyBookingsView>
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             elevation: 0,
                           ),
-                          child: const Text('Ansixi Lacabta', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          child: const Text('Ansixi Lacagta', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         ),
                       ),
                     ],
+                  ),
+                ),
+              ] else if (b.status == BookingStatus.approved && !b.isFullyPaid) ...[
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _completeBookingPaymentByAdmin(context, market, b),
+                      icon: const Icon(Icons.check_circle_rounded, size: 18),
+                      label: Text('Xaqiiji Baqiga (${b.currency} ${b.remainingAmount.toStringAsFixed(0)})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF00D285),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        elevation: 0,
+                      ),
+                    ),
                   ),
                 ),
               ],

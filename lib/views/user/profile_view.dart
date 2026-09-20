@@ -6,8 +6,10 @@ import 'package:hakabo/core/l10n/locale_provider.dart';
 import 'package:hakabo/core/l10n/app_strings.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/marketplace_provider.dart';
+import '../../core/utils/whatsapp_launcher.dart';
 import 'orders_view.dart';
 import 'wishlist_view.dart';
+import '../chat/chat_screen.dart';
 
 class ProfileView extends StatelessWidget {
   const ProfileView({super.key});
@@ -92,6 +94,10 @@ class ProfileView extends StatelessWidget {
               Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const OrdersView()));
             }),
+            _tile(context, Icons.chat_bubble_outline_rounded, 'Messages / Support Chat', () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const ChatScreen(otherUserId: 'admin', otherUserName: 'EMARA Support')));
+            }),
             _tile(context, Icons.favorite_outline_rounded, 'Saved Items', () {
               Navigator.push(context,
                   MaterialPageRoute(builder: (_) => const WishlistView()));
@@ -129,6 +135,9 @@ class ProfileView extends StatelessWidget {
             ),
             _tile(context, Icons.settings_outlined, 'Settings', () {}),
             _tile(context, Icons.help_outline_rounded, 'Help Center', () {}),
+            _tile(context, Icons.chat_bubble_outline_rounded, 'WhatsApp Support (+252611112886)', () {
+              WhatsAppLauncher.openWhatsApp();
+            }),
             const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),

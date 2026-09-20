@@ -69,9 +69,10 @@ class _AdminRegisterUserViewState extends State<AdminRegisterUserView> {
 
   String _roleLabel(UserRole r) {
     switch (r) {
-      case UserRole.seller:   return "Seller";
-      case UserRole.delivery: return "Delivery";
-      default:                return "User";
+      case UserRole.seller:     return "Seller";
+      case UserRole.restaurant: return "Maqaayad";
+      case UserRole.delivery:   return "Delivery";
+      default:                  return "User";
     }
   }
 
@@ -105,9 +106,11 @@ class _AdminRegisterUserViewState extends State<AdminRegisterUserView> {
           const Text("Role", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF374151))),
           const SizedBox(height: 10),
           Row(children: [
-            _rolePill(UserRole.seller,   "Seller",   Icons.storefront_rounded,    const Color(0xFFFF6B00)),
-            const SizedBox(width: 10),
-            _rolePill(UserRole.delivery, "Delivery", Icons.delivery_dining_rounded, const Color(0xFF8B5CF6)),
+            _rolePill(UserRole.seller,     "Seller",    Icons.storefront_rounded,    const Color(0xFFFF6B00)),
+            const SizedBox(width: 8),
+            _rolePill(UserRole.restaurant, "Maqaayad",  Icons.restaurant_rounded,    const Color(0xFFE11D48)),
+            const SizedBox(width: 8),
+            _rolePill(UserRole.delivery,   "Delivery",  Icons.delivery_dining_rounded, const Color(0xFF8B5CF6)),
           ]),
           const SizedBox(height: 20),
 

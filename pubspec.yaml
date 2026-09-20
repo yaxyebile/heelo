@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+2
+version: 1.0.2+4
 
 environment:
   sdk: ^3.10.1
@@ -57,6 +57,7 @@ dependencies:
   shimmer: ^3.0.0
   youtube_player_iframe: ^6.0.2
   video_player: ^2.11.1
+  flutter_local_notifications: ^22.3.0
 
 dev_dependencies:
   flutter_test:
@@ -77,17 +78,17 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/images/logo/LOOGO.jpeg"
-  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_background: "#D2F7FF"
   adaptive_icon_foreground: "assets/images/logo/LOOGO.jpeg"
   web:
     generate: true
     image_path: "assets/images/logo/LOOGO.jpeg"
 
 flutter_native_splash:
-  color: "#FFFFFF"
+  color: "#D2F7FF"
   image: "assets/images/logo/LOOGO.jpeg"
   android_12:
-    color: "#FFFFFF"
+    color: "#D2F7FF"
     image: "assets/images/logo/LOOGO.jpeg"
 
 # For information on the generic Dart part of this file, see the
@@ -104,6 +105,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/images/
+    - assets/images/logo.jpeg
     - assets/images/logo/LOOGO.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

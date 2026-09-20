@@ -34,14 +34,51 @@ class MarketplaceProvider extends ChangeNotifier {
   Map<String, List<OrderItem>> _cart = {};
   String _adminEvc = '614227744';
   String _adminEdahab = '624227744';
+  String _waafiMerchantUid = 'M0914437';
+  String _waafiApiUserId = '1009283';
+  String _waafiApiKey = 'API-I25284gnwZ7uKRBVLjsBq5JBJ';
+  bool _waafiAutoEnabled = true;
   bool _isLoading = true;
   String? _loadError;
   final Set<String> _wishlistIds = {};
   Coupon? _activeCoupon;
 
-  List<Store> get stores => _stores.where((s) => !s.isBanned).toList();
+  bool storeHasDiscount(String storeId) {
+    return _products.any((p) => p.storeId == storeId && p.hasDiscount && p.isApproved && p.stock > 0);
+  }
+
+  int getStoreMaxDiscount(String storeId) {
+    final list = _products.where((p) => p.storeId == storeId && p.hasDiscount && p.isApproved && p.stock > 0);
+    if (list.isEmpty) return 0;
+    return list.map((p) => p.discountPercent).reduce((a, b) => a > b ? a : b);
+  }
+
+  List<Store> get stores {
+    final list = _stores.where((s) => !s.isRestaurant && !s.isBanned).toList();
+    list.sort((a, b) {
+      final aHasDisc = storeHasDiscount(a.id);
+      final bHasDisc = storeHasDiscount(b.id);
+      if (aHasDisc && !bHasDisc) return -1;
+      if (!aHasDisc && bHasDisc) return 1;
+      return b.rating.compareTo(a.rating);
+    });
+    return list;
+  }
+
+  List<Store> get restaurants {
+    final list = _stores.where((s) => s.isRestaurant && !s.isBanned).toList();
+    list.sort((a, b) {
+      final aHasDisc = storeHasDiscount(a.id);
+      final bHasDisc = storeHasDiscount(b.id);
+      if (aHasDisc && !bHasDisc) return -1;
+      if (!aHasDisc && bHasDisc) return 1;
+      return b.rating.compareTo(a.rating);
+    });
+    return list;
+  }
+
   List<Product> get products => _products
-      .where((p) => p.isApproved && !_isStoreBanned(p.storeId))
+      .where((p) => p.isApproved && p.stock > 0 && !_isStoreBanned(p.storeId))
       .toList();
   List<Store> get allStores => _stores;
   List<Product> get allProducts => _products;
@@ -67,6 +104,10 @@ class MarketplaceProvider extends ChangeNotifier {
   Map<String, List<OrderItem>> get cart => _cart;
   String get adminEvc => _adminEvc;
   String get adminEdahab => _adminEdahab;
+  String get waafiMerchantUid => _waafiMerchantUid;
+  String get waafiApiUserId => _waafiApiUserId;
+  String get waafiApiKey => _waafiApiKey;
+  bool get waafiAutoEnabled => _waafiAutoEnabled;
   bool get isLoading => _isLoading;
   String? get loadError => _loadError;
   Coupon? get activeCoupon => _activeCoupon;
@@ -118,6 +159,10 @@ class MarketplaceProvider extends ChangeNotifier {
       _secondHandBookings = results[9] as List<SecondHandBooking>;
       _adminEvc = settings['admin_evc'] ?? _adminEvc;
       _adminEdahab = settings['admin_edahab'] ?? _adminEdahab;
+      _waafiMerchantUid = settings['waafi_merchant_uid'] ?? _waafiMerchantUid;
+      _waafiApiUserId = settings['waafi_api_user_id'] ?? _waafiApiUserId;
+      _waafiApiKey = settings['waafi_api_key'] ?? _waafiApiKey;
+      _waafiAutoEnabled = (settings['waafi_auto_enabled'] ?? 'true') == 'true';
 
       _isLoading = false;
       notifyListeners();
@@ -157,11 +202,24 @@ class MarketplaceProvider extends ChangeNotifier {
   Future<void> updateAdminPayments({
     required String evc,
     required String edahab,
+    String? waafiMerchantUid,
+    String? waafiApiUserId,
+    String? waafiApiKey,
+    bool? waafiAutoEnabled,
   }) async {
     await SupabaseService.setSetting('admin_evc', evc);
     await SupabaseService.setSetting('admin_edahab', edahab);
+    if (waafiMerchantUid != null) await SupabaseService.setSetting('waafi_merchant_uid', waafiMerchantUid);
+    if (waafiApiUserId != null) await SupabaseService.setSetting('waafi_api_user_id', waafiApiUserId);
+    if (waafiApiKey != null) await SupabaseService.setSetting('waafi_api_key', waafiApiKey);
+    if (waafiAutoEnabled != null) await SupabaseService.setSetting('waafi_auto_enabled', waafiAutoEnabled.toString());
+
     _adminEvc = evc;
     _adminEdahab = edahab;
+    if (waafiMerchantUid != null) _waafiMerchantUid = waafiMerchantUid;
+    if (waafiApiUserId != null) _waafiApiUserId = waafiApiUserId;
+    if (waafiApiKey != null) _waafiApiKey = waafiApiKey;
+    if (waafiAutoEnabled != null) _waafiAutoEnabled = waafiAutoEnabled;
     notifyListeners();
   }
 
@@ -169,6 +227,14 @@ class MarketplaceProvider extends ChangeNotifier {
     await SupabaseService.upsertPromo(promo);
     _promos.add(promo);
     notifyListeners();
+
+    await FeaturesService.createNotification(
+      userId: 'all',
+      title: 'Bannaanbax & Qiimo Dhimis! 🏷️',
+      body: '${promo.tag}: ${promo.title.replaceAll('\n', ' ')}',
+      type: 'promo',
+      relatedId: promo.id,
+    );
   }
 
   Future<void> removePromo(String id) async {
@@ -186,6 +252,31 @@ class MarketplaceProvider extends ChangeNotifier {
   Future<void> removeCargoAd(String id) async {
     await SupabaseService.deleteCargoAd(id);
     _cargoAds.removeWhere((a) => a.id == id);
+    notifyListeners();
+  }
+
+  // ── Categories ─────────────────────────────────────────────────────────────
+
+  Future<void> addCategory(Category cat) async {
+    await SupabaseService.upsertCategory(cat);
+    _categories.add(cat);
+    notifyListeners();
+  }
+
+  Future<void> updateCategory(Category cat) async {
+    await SupabaseService.upsertCategory(cat);
+    final idx = _categories.indexWhere((c) => c.id == cat.id);
+    if (idx != -1) {
+      _categories[idx] = cat;
+    } else {
+      _categories.add(cat);
+    }
+    notifyListeners();
+  }
+
+  Future<void> removeCategory(String id) async {
+    await SupabaseService.deleteCategory(id);
+    _categories.removeWhere((c) => c.id == id);
     notifyListeners();
   }
 
@@ -212,15 +303,58 @@ class MarketplaceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  List<PropertyListing> searchPropertyListings(String query) {
-    if (query.trim().isEmpty) return [];
-    final q = query.toLowerCase();
-    return propertyListings
-        .where((p) =>
-            p.title.toLowerCase().contains(q) ||
-            p.location.toLowerCase().contains(q) ||
-            p.description.toLowerCase().contains(q))
-        .toList();
+  /// Checks if a product belongs to a store that is marked as a restaurant.
+  bool isRestaurantProduct(Product product) {
+    final store = _stores.where((s) => s.id == product.storeId).firstOrNull;
+    return store?.isRestaurant ?? false;
+  }
+
+  /// Returns approved products excluding restaurant food items (for main marketplace & New Arrivals).
+  List<Product> get nonRestaurantProducts {
+    final restaurantStoreIds = _stores.where((s) => s.isRestaurant).map((s) => s.id).toSet();
+    return _products.where((p) => p.isApproved && !restaurantStoreIds.contains(p.storeId)).toList();
+  }
+
+  /// Total purchase count per product from active & past orders
+  Map<String, int> get productPurchaseCounts {
+    final counts = <String, int>{};
+    for (var order in _orders) {
+      for (var item in order.items) {
+        counts[item.productId] = (counts[item.productId] ?? 0) + item.quantity;
+      }
+    }
+    return counts;
+  }
+
+  /// Featured products: Products purchased 3+ times (or with highest purchase counts) automatically move to the VERY TOP!
+  List<Product> get featuredProducts {
+    final base = nonRestaurantProducts;
+    final counts = productPurchaseCounts;
+
+    final sorted = List<Product>.from(base);
+    sorted.sort((a, b) {
+      final countA = counts[a.id] ?? 0;
+      final countB = counts[b.id] ?? 0;
+
+      final isTopA = countA >= 3;
+      final isTopB = countB >= 3;
+
+      if (isTopA != isTopB) {
+        return isTopA ? -1 : 1; // 3+ purchases come to the top
+      }
+      if (countA != countB) {
+        return countB.compareTo(countA); // Higher sales next
+      }
+      return b.rating.compareTo(a.rating);
+    });
+
+    return sorted;
+  }
+
+  /// Returns food items from restaurant stores only.
+  List<Product> get restaurantFoodProducts {
+    final restaurantStoreIds = _stores.where((s) => s.isRestaurant).map((s) => s.id).toSet();
+    return _products.where((p) => p.isApproved && restaurantStoreIds.contains(p.storeId)).toList();
   }
 
   List<PropertyListing> getPendingPropertyListings() =>
@@ -238,6 +372,18 @@ class MarketplaceProvider extends ChangeNotifier {
     final idx = _propertyBookings.indexWhere((b) => b.id == id);
     if (idx == -1) return;
     final updated = _propertyBookings[idx].copyWith(status: BookingStatus.approved);
+    await SupabaseService.upsertPropertyBooking(updated);
+    _propertyBookings[idx] = updated;
+    notifyListeners();
+  }
+
+  Future<void> completePropertyBookingPayment(String id) async {
+    final idx = _propertyBookings.indexWhere((b) => b.id == id);
+    if (idx == -1) return;
+    final updated = _propertyBookings[idx].copyWith(
+      status: BookingStatus.approved,
+      isFullyPaid: true,
+    );
     await SupabaseService.upsertPropertyBooking(updated);
     _propertyBookings[idx] = updated;
     notifyListeners();
@@ -294,6 +440,7 @@ class MarketplaceProvider extends ChangeNotifier {
   }
 
   void addToCart(Product product, int quantity) {
+    if (product.stock <= 0) return;
     if (!_cart.containsKey(product.storeId)) {
       _cart[product.storeId] = [];
     }
@@ -306,7 +453,7 @@ class MarketplaceProvider extends ChangeNotifier {
       _cart[product.storeId]![existingIndex] = OrderItem(
         productId: product.id,
         productName: product.name,
-        price: product.price,
+        price: product.priceWithFee,
         quantity: newQty,
         storeId: product.storeId,
         storeName: product.storeName,
@@ -317,7 +464,7 @@ class MarketplaceProvider extends ChangeNotifier {
       _cart[product.storeId]!.add(OrderItem(
         productId: product.id,
         productName: product.name,
-        price: product.price,
+        price: product.priceWithFee,
         quantity: newQty,
         storeId: product.storeId,
         storeName: product.storeName,
@@ -365,6 +512,27 @@ class MarketplaceProvider extends ChangeNotifier {
     return total;
   }
 
+  String _fulfillmentType = 'delivery'; // 'delivery' or 'pickup'
+  String get fulfillmentType => _fulfillmentType;
+  bool get isPickupFulfillment => _fulfillmentType == 'pickup';
+
+  void setFulfillmentType(String type) {
+    _fulfillmentType = type;
+    notifyListeners();
+  }
+
+  /// Delivery fee rule: Free delivery if subtotal > $20.00, otherwise $1.30
+  /// If Pickup is selected, delivery fee is always $0.00.
+  double calculateDeliveryFee(double subtotal) {
+    if (subtotal == 0) return 0.0;
+    if (_fulfillmentType == 'pickup') return 0.0;
+    return subtotal > 20.0 ? 0.0 : 1.30;
+  }
+
+  double get deliveryFee => calculateDeliveryFee(cartTotal);
+
+  double get cartTotalWithDelivery => cartTotal + deliveryFee;
+
   void removeFromCart(String storeId, String productId) {
     if (_cart.containsKey(storeId)) {
       _cart[storeId]!.removeWhere((item) => item.productId == productId);
@@ -385,7 +553,10 @@ class MarketplaceProvider extends ChangeNotifier {
     String? customerName,
     String? customerPhone,
     String? customerAddress,
+    String? deliveryType,
+    bool isPaid = false,
   }) async {
+    final finalDeliveryType = deliveryType ?? _fulfillmentType;
     var created = 0;
     for (var entry in _cart.entries) {
       final storeId = entry.key;
@@ -406,40 +577,51 @@ class MarketplaceProvider extends ChangeNotifier {
         }
       }
 
+      final isPickupOrder = finalDeliveryType == 'pickup';
+      String formattedAddress = customerAddress ?? '';
+      if (isPickupOrder && !formattedAddress.toUpperCase().contains('[PICKUP]')) {
+        formattedAddress = '[PICKUP] $formattedAddress'.trim();
+      }
+
       final order = Order(
         id: const Uuid().v4(),
         userId: userId,
         items: items,
         totalAmount: storeTotal,
         date: DateTime.now(),
-        status: OrderStatus.pending,
+        status: isPaid ? OrderStatus.paymentConfirmed : OrderStatus.pending,
         storeId: storeId,
         paymentMethod: paymentMethod,
-        isPaid: false,
+        isPaid: isPaid,
         customerName: customerName,
         customerPhone: customerPhone,
-        customerAddress: customerAddress,
+        customerAddress: formattedAddress,
+        deliveryType: finalDeliveryType,
       );
 
       await SupabaseService.upsertOrder(order);
       _orders.insert(0, order);
       created++;
-      await FeaturesService.createNotification(
-        userId: userId,
-        title: 'Dalab la gudbiyay',
-        body: 'Dalab cusub dukaanka ${getStoreById(storeId)?.name ?? storeId}',
-        type: 'order',
-        relatedId: order.id,
-      );
-      final store = getStoreById(storeId);
-      if (store != null) {
+      try {
         await FeaturesService.createNotification(
-          userId: store.ownerId,
-          title: 'Dalab cusub!',
-          body: 'Macmiil cusub ayaa dalbaday alaabtaada.',
+          userId: userId,
+          title: 'Dalab la gudbiyay',
+          body: 'Dalab cusub dukaanka ${getStoreById(storeId)?.name ?? storeId}',
           type: 'order',
           relatedId: order.id,
         );
+        final store = getStoreById(storeId);
+        if (store != null) {
+          await FeaturesService.createNotification(
+            userId: store.ownerId,
+            title: 'Dalab cusub!',
+            body: 'Macmiil cusub ayaa dalbaday alaabtaada.',
+            type: 'order',
+            relatedId: order.id,
+          );
+        }
+      } catch (e) {
+        debugPrint('placeOrder notification creation error: $e');
       }
     }
 
@@ -447,6 +629,56 @@ class MarketplaceProvider extends ChangeNotifier {
     _activeCoupon = null;
     notifyListeners();
     return created;
+  }
+
+  /// Allows a store/restaurant owner to manually create an order on behalf of a customer.
+  Future<Order?> createDirectStoreOrder({
+    required String storeId,
+    required List<OrderItem> items,
+    required String customerName,
+    required String customerPhone,
+    required String customerAddress,
+    required PaymentMethod paymentMethod,
+    bool isPaid = true,
+  }) async {
+    try {
+      double total = 0;
+      for (var item in items) {
+        total += item.price * item.quantity;
+        final pIdx = _products.indexWhere((p) => p.id == item.productId);
+        if (pIdx != -1) {
+          final p = _products[pIdx];
+          int cusub = p.stock - item.quantity;
+          if (cusub < 0) cusub = 0;
+          final updatedProduct = p.copyWith(stock: cusub);
+          SupabaseService.upsertProduct(updatedProduct);
+          _products[pIdx] = updatedProduct;
+        }
+      }
+
+      final order = Order(
+        id: const Uuid().v4(),
+        userId: 'manual_customer',
+        items: items,
+        totalAmount: total,
+        date: DateTime.now(),
+        status: isPaid ? OrderStatus.approved : OrderStatus.pending,
+        storeId: storeId,
+        paymentMethod: paymentMethod,
+        isPaid: isPaid,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        customerAddress: customerAddress,
+      );
+
+      await SupabaseService.upsertOrder(order);
+      _orders.insert(0, order);
+      notifyListeners();
+      return order;
+    } catch (e) {
+      debugPrint('createDirectStoreOrder error: $e');
+      return null;
+    }
   }
 
   Future<void> confirmPayment(String orderId) async {
@@ -461,9 +693,24 @@ class MarketplaceProvider extends ChangeNotifier {
     );
   }
 
-  /// Returns error message if pickup failed.
+  /// Returns error message if pickup failed or order already claimed by another driver.
   Future<String?> markPickedUp(String orderId, {String? deliveryPersonId}) async {
     try {
+      final idx = _orders.indexWhere((o) => o.id == orderId);
+      if (idx != -1) {
+        final existing = _orders[idx];
+        if (existing.isPickup && existing.deliveryPersonId != deliveryPersonId) {
+          return 'Dalabkan waa PICKUP. Waxaa qaadi kara oo kaliya wadaha uu Admin-ku toos u xilsaaray.';
+        }
+        if (existing.status == OrderStatus.pending) {
+          return 'Dalabkan weli Admin-ka ama nidaamku ma ansixin (Pending).';
+        }
+        if (existing.deliveryPersonId != null &&
+            existing.deliveryPersonId != deliveryPersonId) {
+          return 'Dalabkan waxaa hore u qaaday wadaha kale!';
+        }
+      }
+
       await _updateOrder(
         orderId,
         status: OrderStatus.outForDelivery,
@@ -474,6 +721,65 @@ class MarketplaceProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('markPickedUp: $e');
       return 'Qaadista waa fashilantay: $e';
+    }
+  }
+
+  Future<String?> unassignDeliveryDriver(String orderId) async {
+    try {
+      final idx = _orders.indexWhere((o) => o.id == orderId);
+      if (idx == -1) return 'Dalabka lama helin';
+
+      final old = _orders[idx];
+      final driver = old.deliveryPersonId != null
+          ? _users.where((u) => u.id == old.deliveryPersonId).firstOrNull
+          : null;
+      final driverName = driver?.name ?? 'Delivery Driver';
+
+      final updated = Order(
+        id: old.id,
+        userId: old.userId,
+        items: old.items,
+        totalAmount: old.totalAmount,
+        date: old.date,
+        status: OrderStatus.approved,
+        storeId: old.storeId,
+        paymentMethod: old.paymentMethod,
+        isPaid: old.isPaid,
+        customerName: old.customerName,
+        customerPhone: old.customerPhone,
+        customerAddress: old.customerAddress,
+        deliveryType: old.deliveryType,
+        deliveryPersonId: null,
+        pickedUpAt: null,
+        deliveredAt: null,
+        canceledByDriverId: old.deliveryPersonId,
+        canceledByDriverName: driverName,
+      );
+      await SupabaseService.upsertOrder(updated);
+      _orders[idx] = updated;
+      notifyListeners();
+
+      // Notify Admin
+      await FeaturesService.createNotification(
+        userId: 'admin',
+        title: 'Driver ayaa kansalay gaarsiinta ⚠️',
+        body: 'Wadaha $driverName wuxuu fasaxay dalabka #${old.id.substring(0, 8)}',
+        type: 'delivery',
+        relatedId: old.id,
+      );
+
+      // Notify Customer
+      await FeaturesService.createNotification(
+        userId: old.userId,
+        title: 'Gaarsiinta waa la fasaxay 🚚',
+        body: 'Wadaha delivery-ga wuxuu fasaxay dalabkaaga. Wadayaal kale ayaa loo xilsaari doonaa.',
+        type: 'order',
+        relatedId: old.id,
+      );
+      return null;
+    } catch (e) {
+      debugPrint('unassignDeliveryDriver error: $e');
+      return 'Kansalaada waa fashilantay: $e';
     }
   }
 
@@ -531,13 +837,42 @@ class MarketplaceProvider extends ChangeNotifier {
   }
 
   Future<void> _notifyOrderStatusChange(Order order, OrderStatus status) async {
+    String? driverInfo;
+    if (order.deliveryPersonId != null && order.deliveryPersonId!.isNotEmpty) {
+      final driver = _users.where((u) => u.id == order.deliveryPersonId).firstOrNull;
+      if (driver != null) {
+        final phone = (driver.phone != null && driver.phone!.isNotEmpty) ? driver.phone : 'N/A';
+        driverInfo = 'Wadaha: ${driver.name} (Tel: $phone)';
+      }
+    }
+
     final labels = {
-      OrderStatus.paymentConfirmed: ('Lacag la xaqiijiyay', 'Dalabkaaga waa la xaqiijiyay.'),
-      OrderStatus.approved: ('Dalab la aqbalay', 'Dalabkaaga waa la aqbalay, delivery ayaa soo socota.'),
-      OrderStatus.outForDelivery: ('Waa la qaaday', 'Alaabtaada waa la qaaday, wadaya.'),
-      OrderStatus.delivered: ('La gaarsiiyay', 'Dalabkaaga waa la gaarsiiyay!'),
-      OrderStatus.cancelled: ('La joojiyay', 'Dalabkaaga waa la joojiyay.'),
+      OrderStatus.paymentConfirmed: (
+        'Lacag la xaqiijiyay ✅',
+        'Dalabkaaga waa la xaqiijiyay. Dukaanka ayaa baaraya.'
+      ),
+      OrderStatus.approved: (
+        'Dalabkaaga waa la aqbalay! ✅',
+        driverInfo != null
+          ? 'Dukaanku wuxuu aqbalay dalabkaaga. $driverInfo wuxuu idiin sidaa alaabta.'
+          : 'Dukaanku wuxuu aqbalay dalabkaaga. Hadda waxaa loo diyaarinayaa gaarsiin.'
+      ),
+      OrderStatus.outForDelivery: (
+        'Waa la soo qaaday! 🚚',
+        driverInfo != null
+          ? 'Alaabtaada waa la soo qaaday. $driverInfo waa uu ku soo socdaa.'
+          : 'Alaabtaada waa la soo qaaday, wadayaasha ayaa ku soo socda.'
+      ),
+      OrderStatus.delivered: (
+        'La gaarsiiyay 📦',
+        'Dalabkaaga waa la gaarsiiyay! Waad ku mahadsan tahay EMARA.'
+      ),
+      OrderStatus.cancelled: (
+        'La joojiyay ❌',
+        'Dalabkaaga waa la joojiyay. Waxaad kala xariiri kartaa support-ka.'
+      ),
     };
+
     final msg = labels[status];
     if (msg != null) {
       await FeaturesService.createNotification(
@@ -548,11 +883,12 @@ class MarketplaceProvider extends ChangeNotifier {
         relatedId: order.id,
       );
     }
+
     if (status == OrderStatus.approved && order.deliveryPersonId != null) {
       await FeaturesService.createNotification(
         userId: order.deliveryPersonId!,
-        title: 'Dalab cusub',
-        body: 'Admin kuu xilsaaray dalab #${order.id.substring(0, 8)}',
+        title: 'Dalab cusub oo loo xilsaaray 🚚',
+        body: 'Waxaa loo xilsaaray dalab #${order.id.substring(0, 8)}. Fadlan aad dukaanka si aad u soo qaaddo.',
         type: 'delivery',
         relatedId: order.id,
       );
@@ -617,6 +953,34 @@ class MarketplaceProvider extends ChangeNotifier {
     await SupabaseService.upsertProduct(product);
     _products = await SupabaseService.fetchProducts();
     notifyListeners();
+
+    if (product.hasDiscount || (product.originalPrice != null && product.originalPrice! > product.price)) {
+      final pct = product.discountPercent > 0 ? '${product.discountPercent}%' : 'dhimis';
+      await FeaturesService.createNotification(
+        userId: 'all',
+        title: 'Qiimo Dhimis Cusub! 🎉🏷️',
+        body: 'Dukaanka "${product.storeName}" wuxuu sameeyay qiimo dhimis $pct ah oo ku saabsan alaabta "${product.name}"!',
+        type: 'promo',
+        relatedId: product.id,
+      );
+    }
+  }
+
+  Future<void> updateProduct(Product product) async {
+    await SupabaseService.upsertProduct(product);
+    _products = await SupabaseService.fetchProducts();
+    notifyListeners();
+
+    if (product.hasDiscount || (product.originalPrice != null && product.originalPrice! > product.price)) {
+      final pct = product.discountPercent > 0 ? '${product.discountPercent}%' : 'dhimis';
+      await FeaturesService.createNotification(
+        userId: 'all',
+        title: 'Qiimo Dhimis Cusub! 🎉🏷️',
+        body: 'Dukaanka "${product.storeName}" wuxuu sameeyay qiimo dhimis $pct ah oo ku saabsan alaabta "${product.name}"!',
+        type: 'promo',
+        relatedId: product.id,
+      );
+    }
   }
 
   Future<void> approveProduct(String productId) async {
@@ -640,10 +1004,26 @@ class MarketplaceProvider extends ChangeNotifier {
       rating: p.rating,
       stock: p.stock,
       isApproved: true,
+      gallery: p.gallery,
+      videoUrl: p.videoUrl,
+      sizes: p.sizes,
+      colors: p.colors,
+      originalPrice: p.originalPrice,
     );
     await SupabaseService.upsertProduct(updated);
     _products = await SupabaseService.fetchProducts();
     notifyListeners();
+
+    if (p.hasDiscount || (p.originalPrice != null && p.originalPrice! > p.price)) {
+      final pct = p.discountPercent > 0 ? '${p.discountPercent}%' : 'dhimis';
+      await FeaturesService.createNotification(
+        userId: 'all',
+        title: 'Qiimo Dhimis Cusub! 🎉🏷️',
+        body: 'Dukaanka "${p.storeName}" wuxuu sameeyay qiimo dhimis $pct ah oo ku saabsan alaabta "${p.name}"!',
+        type: 'promo',
+        relatedId: p.id,
+      );
+    }
   }
 
   Future<void> refreshUsers() async {
@@ -661,7 +1041,7 @@ class MarketplaceProvider extends ChangeNotifier {
       _products.where((p) => p.storeId == storeId).toList();
 
   List<Product> getApprovedProductsByStore(String storeId) =>
-      _products.where((p) => p.storeId == storeId && p.isApproved).toList();
+      _products.where((p) => p.storeId == storeId && p.isApproved && p.stock > 0).toList();
 
   List<Product> getPendingProducts() =>
       _products.where((p) => !p.isApproved).toList();
@@ -675,17 +1055,56 @@ class MarketplaceProvider extends ChangeNotifier {
   List<Order> getOrdersByDelivery(String deliveryPersonId) =>
       _orders.where((o) => o.deliveryPersonId == deliveryPersonId).toList();
 
-  /// Approved, assigned to this driver, not picked up yet.
+  Future<void> assignDeliveryDriver(String orderId, String driverId) async {
+    final idx = _orders.indexWhere((o) => o.id == orderId);
+    if (idx == -1) return;
+    final old = _orders[idx];
+    final updated = old.copyWith(
+      deliveryPersonId: driverId,
+      status: old.status == OrderStatus.pending || old.status == OrderStatus.paymentConfirmed
+          ? OrderStatus.approved
+          : old.status,
+    );
+    await SupabaseService.upsertOrder(updated);
+    _orders[idx] = updated;
+    notifyListeners();
+
+    final driver = getUserById(driverId);
+    final driverName = driver?.name ?? 'Delivery Driver';
+    final driverPhone = (driver?.phone != null && driver!.phone!.isNotEmpty) ? driver.phone : 'N/A';
+
+    // Notify Driver
+    await FeaturesService.createNotification(
+      userId: driverId,
+      title: 'Dalab cusub oo loo xilsaaray 🚚',
+      body: 'Admin-ka ayaa kuusoo aadiyay dalabka #${old.id.substring(0, 8)}. Fadlan taabo "Qaado alaabta".',
+      type: 'delivery',
+      relatedId: old.id,
+    );
+
+    // Notify Customer with Driver Name & Phone Number
+    await FeaturesService.createNotification(
+      userId: old.userId,
+      title: 'Wadaa Delivery ayaa loo xilsaaray 🛵',
+      body: 'Wadaha $driverName (Tel: $driverPhone) ayaa loo xilsaaray gaarsiinta dalabkaaga #${old.id.substring(0, 8)}.',
+      type: 'order',
+      relatedId: old.id,
+    );
+  }
+
+  /// Assigned directly to this driver by Admin (whether delivery or pickup explicitly assigned by Admin).
   List<Order> getAssignedDeliveries(String deliveryPersonId) => _orders
       .where((o) =>
           o.deliveryPersonId == deliveryPersonId &&
-          o.status == OrderStatus.approved)
+          (o.status == OrderStatus.approved || o.status == OrderStatus.paymentConfirmed))
       .toList();
 
-  /// Approved, no driver yet — open pool.
+  /// Open pool for drivers: active delivery orders (not pickup, no driver assigned yet, MUST be approved or payment confirmed).
   List<Order> getUnassignedApprovedOrders() => _orders
       .where((o) =>
-          o.status == OrderStatus.approved && o.deliveryPersonId == null)
+          !o.isPickup &&
+          o.deliveryPersonId == null &&
+          (o.status == OrderStatus.approved || o.status == OrderStatus.paymentConfirmed))
       .toList();
 
   List<Order> getPendingOrders() =>
@@ -700,9 +1119,20 @@ class MarketplaceProvider extends ChangeNotifier {
   List<AppUser> getSellers() =>
       _users.where((u) => u.role == UserRole.seller).toList();
 
+  /// Net revenue for seller (original base price excluding 7% admin fee)
   double revenueForStore(String storeId) => _orders
       .where((o) => o.storeId == storeId && o.isPaid)
+      .fold(0.0, (sum, o) => sum + (o.totalAmount / 1.07));
+
+  /// Gross total collected from customers for store items (including 7% fee)
+  double grossRevenueForStore(String storeId) => _orders
+      .where((o) => o.storeId == storeId && o.isPaid)
       .fold(0.0, (sum, o) => sum + o.totalAmount);
+
+  /// Total 7% admin fee earned from this store
+  double adminCommissionForStore(String storeId) => _orders
+      .where((o) => o.storeId == storeId && o.isPaid)
+      .fold(0.0, (sum, o) => sum + (o.totalAmount - (o.totalAmount / 1.07)));
 
   Store? getStoreById(String storeId) {
     try {
@@ -847,7 +1277,7 @@ class MarketplaceProvider extends ChangeNotifier {
     for (final o in _orders.where((o) => o.storeId == storeId && o.isPaid)) {
       final d = DateTime(o.date.year, o.date.month, o.date.day);
       final key = '${d.day}/${d.month}';
-      if (map.containsKey(key)) map[key] = (map[key] ?? 0) + o.totalAmount;
+      if (map.containsKey(key)) map[key] = (map[key] ?? 0) + (o.totalAmount / 1.07);
     }
     return map;
   }

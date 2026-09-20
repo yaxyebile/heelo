@@ -4,8 +4,9 @@ import 'package:video_player/video_player.dart';
 
 class VideoPlayerWidget extends StatefulWidget {
   final String url;
+  final bool autoPlay;
 
-  const VideoPlayerWidget({super.key, required this.url});
+  const VideoPlayerWidget({super.key, required this.url, this.autoPlay = false});
 
   @override
   State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
@@ -33,7 +34,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget>
       _isYoutube = true;
       _ytController = YoutubePlayerController.fromVideoId(
         videoId: videoId,
-        autoPlay: false,
+        autoPlay: widget.autoPlay,
         params: const YoutubePlayerParams(
           showFullscreenButton: true,
           showControls: true,
@@ -43,6 +44,10 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget>
     } else {
       _videoController = VideoPlayerController.networkUrl(Uri.parse(widget.url))
         ..initialize().then((_) {
+          if (widget.autoPlay) {
+            _videoController?.play();
+            _videoController?.setLooping(true);
+          }
           setState(() => _isLoading = false);
         }).catchError((e) {
           setState(() => _isLoading = false);

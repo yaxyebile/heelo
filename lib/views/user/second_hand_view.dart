@@ -10,8 +10,11 @@ import '../../models/property_booking.dart';
 import '../../models/second_hand_booking.dart';
 import '../../core/constants/colors.dart';
 import '../../core/services/supabase_service.dart';
+import '../../core/services/waafi_service.dart';
+import '../../core/services/features_service.dart';
 import '../../core/widgets/video_player_widget.dart';
 import 'second_hand_post_view.dart';
+import '../../core/utils/whatsapp_launcher.dart';
 import 'package:uuid/uuid.dart';
 
 // ─── Category ikon + midab ─────────────────────────────────────────────────
@@ -398,10 +401,9 @@ class _SecondHandDetailViewState extends State<SecondHandDetailView> {
   }
 
   Future<void> _whatsapp(BuildContext context) async {
-    final phone = widget.item.sellerPhone.replaceAll(RegExp(r'[^\d+]'), '');
+    final phone = widget.item.sellerPhone.replaceAll(RegExp(r'[^\d]'), '');
     if (phone.isEmpty) return;
-    final url = Uri.parse('https://wa.me/$phone');
-    if (await canLaunchUrl(url)) await launchUrl(url, mode: LaunchMode.externalApplication);
+    await WhatsAppLauncher.openWhatsApp(phone: phone, message: 'Asc, waxaan xiisaynayaa alaabta: ${widget.item.title}');
   }
 
   @override
@@ -887,28 +889,52 @@ class _SecondHandDetailViewState extends State<SecondHandDetailView> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Payment Instructions
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.amber.shade200),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline_rounded, color: Colors.amber.shade800, size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Fadlan lacagta u dir lambarka:\n$payNum',
-                              style: TextStyle(color: Colors.amber.shade900, fontSize: 13, fontWeight: FontWeight.w600, height: 1.4),
+                    if (isEvc && market.waafiAutoEnabled) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFF00D285).withValues(alpha: 0.4)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.bolt_rounded, color: Color(0xFF00D285), size: 20),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'WAAFI Pay API Active: Lacagta carbunta si automatic ah ayaa looga goynayaa EVC Plus.',
+                                style: TextStyle(color: Color(0xFF047857), fontWeight: FontWeight.w700, fontSize: 11.5),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
+                      const SizedBox(height: 16),
+                    ] else ...[
+                      // Payment Instructions
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.amber.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline_rounded, color: Colors.amber.shade800, size: 20),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Fadlan lacagta u dir lambarka:\n$payNum',
+                                style: TextStyle(color: Colors.amber.shade900, fontSize: 13, fontWeight: FontWeight.w600, height: 1.4),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
                     // Name Input
                     TextFormField(
@@ -929,7 +955,7 @@ class _SecondHandDetailViewState extends State<SecondHandDetailView> {
                       controller: transPhoneCtrl,
                       keyboardType: TextInputType.phone,
                       decoration: InputDecoration(
-                        labelText: 'Taleefanka Lacagta Laga Diray',
+                        labelText: 'Taleefanka Lacagta (EVC Plus)',
                         prefixIcon: const Icon(Icons.phone_rounded, size: 18, color: Color(0xFF2563EB)),
                         filled: true,
                         fillColor: const Color(0xFFF8FAFC),
@@ -948,11 +974,129 @@ class _SecondHandDetailViewState extends State<SecondHandDetailView> {
                             ? null
                             : () async {
                                 if (!formKey.currentState!.validate()) return;
-                                setSheetState(() => isBooking = true);
 
+                                final bookingId = const Uuid().v4();
+                                final phone = transPhoneCtrl.text.trim();
+
+                                // WAAFI Pay Automatic Push Payment Integration
+                                if (isEvc && market.waafiAutoEnabled) {
+                                  Navigator.pop(ctx); // Close sheet to show payment dialog
+
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (payCtx) => AlertDialog(
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                      content: Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const SizedBox(
+                                              width: 50, height: 50,
+                                              child: CircularProgressIndicator(color: Color(0xFF2563EB), strokeWidth: 3.5),
+                                            ),
+                                            const SizedBox(height: 20),
+                                            const Text('WAAFI Pay (EVC Plus)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF1F2937))),
+                                            const SizedBox(height: 10),
+                                            Text(
+                                              'SMS Pop-up ayaa loo diray nambarkaaga ($phone).\nFadlan geli PIN-kaaga EVC Plus si aad u carbunato \$${deposit.toStringAsFixed(2)}.',
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), height: 1.4),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+
+                                  final res = await WaafiPayService.processEvcPayment(
+                                    phone: phone,
+                                    amount: deposit,
+                                    orderId: bookingId,
+                                    merchantUid: market.waafiMerchantUid,
+                                    apiUserId: market.waafiApiUserId,
+                                    apiKey: market.waafiApiKey,
+                                  );
+
+                                  if (context.mounted) Navigator.pop(context); // Close dialog
+
+                                  if (res.success) {
+                                    final booking = SecondHandBooking(
+                                      id: bookingId,
+                                      itemId: item.id,
+                                      itemTitle: item.title,
+                                      userId: auth.currentUser!.id,
+                                      userName: nameCtrl.text.trim(),
+                                      userPhone: auth.currentUser!.phone ?? '',
+                                      totalPrice: item.price,
+                                      depositAmount: deposit,
+                                      currency: item.currency,
+                                      paymentMethod: method,
+                                      transactionPhone: phone,
+                                      status: BookingStatus.approved,
+                                      createdAt: DateTime.now(),
+                                    );
+
+                                    await SupabaseService.upsertSecondHandBooking(booking);
+
+                                    final newStock = item.stock - 1;
+                                    final newStatus = newStock <= 0 ? SecondHandStatus.sold : item.status;
+                                    await SupabaseService.upsertSecondHandItem(
+                                      item.copyWith(stock: newStock, status: newStatus),
+                                    );
+
+                                    await FeaturesService.createNotification(
+                                      userId: auth.currentUser!.id,
+                                      title: 'Lacagta Carbunta Waa La Bixiyay!',
+                                      body: 'Carbuntaalaabta "${item.title}" (\$${deposit.toStringAsFixed(2)}) waa la ansixiyay via EVC Plus.',
+                                      type: 'second_hand',
+                                      relatedId: bookingId,
+                                    );
+
+                                    if (context.mounted) {
+                                      await Provider.of<MarketplaceProvider>(context, listen: false).refresh();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('✅ Lacagta Carbunta \$${deposit.toStringAsFixed(2)} waa la bixiyay via EVC Plus! Alaabta waa la carbuntay.'),
+                                          backgroundColor: const Color(0xFF00D285),
+                                          duration: const Duration(seconds: 4),
+                                        ),
+                                      );
+                                    }
+                                  } else {
+                                    if (context.mounted) {
+                                      showDialog(
+                                        context: context,
+                                        builder: (errCtx) => AlertDialog(
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                          title: const Icon(Icons.error_outline_rounded, color: Colors.red, size: 54),
+                                          content: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Text('Lacag Bixintu Weey Fashilantay', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                                              const SizedBox(height: 10),
+                                              Text(res.message, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.black.withValues(alpha: 0.7))),
+                                            ],
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(errCtx),
+                                              child: const Text('OK', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF2563EB))),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                  }
+                                  return;
+                                }
+
+                                // Manual payment fallback
+                                setSheetState(() => isBooking = true);
                                 try {
                                   final booking = SecondHandBooking(
-                                    id: const Uuid().v4(),
+                                    id: bookingId,
                                     itemId: item.id,
                                     itemTitle: item.title,
                                     userId: auth.currentUser!.id,
@@ -962,23 +1106,19 @@ class _SecondHandDetailViewState extends State<SecondHandDetailView> {
                                     depositAmount: deposit,
                                     currency: item.currency,
                                     paymentMethod: method,
-                                    transactionPhone: transPhoneCtrl.text.trim(),
+                                    transactionPhone: phone,
                                     status: BookingStatus.pending,
                                     createdAt: DateTime.now(),
                                   );
 
                                   await SupabaseService.upsertSecondHandBooking(booking);
-                                  
-                                  // Stock-ga kaga jar 1, haddii 0 noqoto status-ka sold dhig
+
                                   final newStock = item.stock - 1;
-                                  final newStatus = newStock <= 0
-                                      ? SecondHandStatus.sold
-                                      : item.status;
+                                  final newStatus = newStock <= 0 ? SecondHandStatus.sold : item.status;
                                   await SupabaseService.upsertSecondHandItem(
                                     item.copyWith(stock: newStock, status: newStatus),
                                   );
-                                  
-                                  // Provider xogta fresh ka soo qaado
+
                                   if (context.mounted) {
                                     await Provider.of<MarketplaceProvider>(context, listen: false).refresh();
                                   }
@@ -1013,7 +1153,7 @@ class _SecondHandDetailViewState extends State<SecondHandDetailView> {
                         ),
                         child: isBooking
                             ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text('Xaqiiji Carbunta', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                            : const Text('Xaqiiji Carbunta (EVC Plus)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
                       ),
                     ),
                     const SizedBox(height: 24),

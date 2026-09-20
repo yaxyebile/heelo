@@ -12,4 +12,6 @@ enum UserRole {
   admin,
   @HiveField(3)
   delivery,
+  @HiveField(4)
+  restaurant,
 }

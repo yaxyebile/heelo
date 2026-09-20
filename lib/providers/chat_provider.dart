@@ -1,21 +1,59 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../core/services/supabase_service.dart';
+import '../core/services/features_service.dart';
 import '../models/chat_message.dart';
 
 class ChatProvider extends ChangeNotifier {
   final List<Map<String, dynamic>> _messages = [];
   bool _isLoading = false;
   bool _loaded = false;
+  StreamSubscription? _chatSubscription;
 
   List<Map<String, dynamic>> get messages => _messages;
   bool get isLoading => _isLoading;
 
-  /// Loads chat only when user opens Messages/admin chat (not at app start).
+  /// Loads chat & subscribes to Realtime updates from Supabase.
   Future<void> ensureLoaded() async {
-    if (_loaded || _isLoading) return;
+    if (_loaded) return;
     await _loadMessages();
+    _subscribeToRealtimeChat();
     _loaded = true;
+  }
+
+  void _subscribeToRealtimeChat() {
+    _chatSubscription?.cancel();
+    try {
+      _chatSubscription = SupabaseService.client
+          .from('chat_messages')
+          .stream(primaryKey: ['id'])
+          .order('timestamp', ascending: true)
+          .listen(
+        (List<Map<String, dynamic>> data) {
+          _messages.clear();
+          for (final r in data) {
+            _messages.add({
+              'id': r['id'] as String,
+              'senderId': r['sender_id'] as String,
+              'receiverId': r['receiver_id'] as String,
+              'content': r['content'] as String,
+              'timestamp': r['timestamp'] as String,
+              'isRead': r['is_read'] as bool? ?? false,
+            });
+          }
+          _messages.sort(
+            (a, b) => (a['timestamp'] as String).compareTo(b['timestamp'] as String),
+          );
+          notifyListeners();
+        },
+        onError: (err) {
+          debugPrint('Realtime chat stream error: $err');
+        },
+      );
+    } catch (e) {
+      debugPrint('Error subscribing to chat realtime: $e');
+    }
   }
 
   Future<void> _loadMessages() async {
@@ -62,17 +100,40 @@ class ChatProvider extends ChangeNotifier {
       timestamp: DateTime.now(),
     );
 
+    // Optimistically add to local list immediately
+    final existingIndex = _messages.indexWhere((m) => m['id'] == msg.id);
+    if (existingIndex == -1) {
+      _messages.add({
+        'id': msg.id,
+        'senderId': msg.senderId,
+        'receiverId': msg.receiverId,
+        'content': msg.content,
+        'timestamp': msg.timestamp.toIso8601String(),
+        'isRead': false,
+      });
+      notifyListeners();
+    }
+
     await SupabaseService.insertChatMessage(msg);
 
-    _messages.add({
-      'id': msg.id,
-      'senderId': msg.senderId,
-      'receiverId': msg.receiverId,
-      'content': msg.content,
-      'timestamp': msg.timestamp.toIso8601String(),
-      'isRead': false,
-    });
-    notifyListeners();
+    // Trigger notification to recipient
+    try {
+      await FeaturesService.createNotification(
+        userId: receiverId,
+        title: 'Fariin Cusub 💬',
+        body: content.length > 50 ? '${content.substring(0, 50)}...' : content,
+        type: 'chat',
+        relatedId: senderId,
+      );
+    } catch (e) {
+      debugPrint('Chat notification trigger error: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _chatSubscription?.cancel();
+    super.dispose();
   }
 
   List<Map<String, dynamic>> getConversation(String uid1, String uid2) {

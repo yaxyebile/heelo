@@ -21,6 +21,8 @@ class UserRoleAdapter extends TypeAdapter<UserRole> {
         return UserRole.admin;
       case 3:
         return UserRole.delivery;
+      case 4:
+        return UserRole.restaurant;
       default:
         return UserRole.user;
     }
@@ -40,6 +42,9 @@ class UserRoleAdapter extends TypeAdapter<UserRole> {
         break;
       case UserRole.delivery:
         writer.writeByte(3);
+        break;
+      case UserRole.restaurant:
+        writer.writeByte(4);
         break;
     }
   }

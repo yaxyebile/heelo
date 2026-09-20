@@ -408,24 +408,55 @@ class _PropertyListingsViewState extends State<PropertyListingsView>
                         )
                       : _imagePlaceholder(p),
                 ),
-                // Type badge
+                // Type / Reserved badge
                 Positioned(
                   top: 12,
                   left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: p.listingType == PropertyListingType.rent
-                          ? const Color(0xFF3B82F6)
-                          : const Color(0xFFEF4444),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      p.listingTypeLabel.toUpperCase(),
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
-                    ),
-                  ),
+                  child: p.isReserved
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDC2626),
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withOpacity(0.4),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.lock_rounded, size: 12, color: Colors.white),
+                              SizedBox(width: 4),
+                              Text(
+                                'WAA LA CARBUUNTAY',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: p.listingType == PropertyListingType.rent
+                                ? const Color(0xFF3B82F6)
+                                : const Color(0xFFEF4444),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            p.listingTypeLabel.toUpperCase(),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
+                          ),
+                        ),
                 ),
                 // Property type
                 Positioned(

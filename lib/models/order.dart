@@ -110,6 +110,17 @@ class Order extends HiveObject {
   final String? customerPhone;
   @HiveField(14)
   final String? customerAddress;
+  @HiveField(15)
+  final String deliveryType; // 'delivery' or 'pickup'
+  @HiveField(16)
+  final String? canceledByDriverId;
+  @HiveField(17)
+  final String? canceledByDriverName;
+
+  bool get isPickup =>
+      deliveryType == 'pickup' ||
+      (customerAddress?.toLowerCase().contains('[pickup]') ?? false) ||
+      (customerAddress?.toLowerCase().contains('pickup') ?? false);
 
   Order({
     required this.id,
@@ -127,6 +138,9 @@ class Order extends HiveObject {
     this.customerName,
     this.customerPhone,
     this.customerAddress,
+    this.deliveryType = 'delivery',
+    this.canceledByDriverId,
+    this.canceledByDriverName,
   });
 
   Order copyWith({
@@ -135,6 +149,9 @@ class Order extends HiveObject {
     String? deliveryPersonId,
     DateTime? pickedUpAt,
     DateTime? deliveredAt,
+    String? deliveryType,
+    String? canceledByDriverId,
+    String? canceledByDriverName,
   }) {
     return Order(
       id: id,
@@ -152,6 +169,9 @@ class Order extends HiveObject {
       customerName: customerName,
       customerPhone: customerPhone,
       customerAddress: customerAddress,
+      deliveryType: deliveryType ?? this.deliveryType,
+      canceledByDriverId: canceledByDriverId ?? this.canceledByDriverId,
+      canceledByDriverName: canceledByDriverName ?? this.canceledByDriverName,
     );
   }
 
@@ -171,6 +191,9 @@ class Order extends HiveObject {
         'customer_name': customerName,
         'customer_phone': customerPhone,
         'customer_address': customerAddress,
+        'delivery_type': deliveryType,
+        'canceled_by_driver_id': canceledByDriverId,
+        'canceled_by_driver_name': canceledByDriverName,
       };
 
   factory Order.fromJson(Map<String, dynamic> json) {
@@ -180,6 +203,10 @@ class Order extends HiveObject {
             .map((e) => OrderItem.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList()
         : <OrderItem>[];
+
+    final rawDeliveryType = json['delivery_type'] as String?;
+    final addr = (json['customer_address'] as String?)?.toLowerCase() ?? '';
+    final isPickupAddr = addr.contains('[pickup]') || addr.contains('pickup');
 
     return Order(
       id: json['id'] as String,
@@ -207,6 +234,9 @@ class Order extends HiveObject {
       customerName: json['customer_name'] as String?,
       customerPhone: json['customer_phone'] as String?,
       customerAddress: json['customer_address'] as String?,
+      deliveryType: (rawDeliveryType == 'pickup' || isPickupAddr) ? 'pickup' : (rawDeliveryType ?? 'delivery'),
+      canceledByDriverId: json['canceled_by_driver_id'] as String?,
+      canceledByDriverName: json['canceled_by_driver_name'] as String?,
     );
   }
 }

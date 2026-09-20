@@ -1,29 +1,18 @@
-import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../../models/cargo_ad.dart';
+import '../../core/utils/whatsapp_launcher.dart';
 
 class CargoAdDetailView extends StatelessWidget {
   final CargoAd ad;
   const CargoAdDetailView({super.key, required this.ad});
 
   Future<void> _openWhatsApp(BuildContext context) async {
-    final phone = ad.phone.replaceAll(RegExp(r'[^\d+]'), '');
+    final phone = ad.phone.replaceAll(RegExp(r'[^\d]'), '');
     if (phone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Telefoon lama dhisin xayeysiiskan')),
       );
       return;
     }
-    final url = Uri.parse('https://wa.me/$phone');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('WhatsApp lama furi karo. Hubi inuu ku jiro teleefankaaga.')),
-        );
-      }
-    }
+    await WhatsAppLauncher.openWhatsApp(phone: phone, message: 'Asc EMARA Cargo Inquiry');
   }
 
   @override

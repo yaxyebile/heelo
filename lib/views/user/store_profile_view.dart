@@ -4,6 +4,7 @@ import '../../providers/marketplace_provider.dart';
 import '../../models/store.dart';
 import '../../core/widgets/product_card.dart';
 import '../../core/constants/colors.dart';
+import 'product_details_view.dart';
 
 class StoreProfileView extends StatefulWidget {
   final Store store;
@@ -223,7 +224,14 @@ class _StoreProfileViewState extends State<StoreProfileView> {
                 delegate: SliverChildBuilderDelegate(
                   (context, i) => ProductCard(
                     product: products[i],
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProductDetailsView(product: products[i]),
+                        ),
+                      );
+                    },
                     onAddToCart: () => market.addToCart(products[i], 1),
                   ),
                   childCount: products.length,

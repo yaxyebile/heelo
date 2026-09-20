@@ -151,7 +151,7 @@ class _StoresListViewState extends State<StoresListView> {
               borderRadius: BorderRadius.circular(14),
               child: store.logo.isNotEmpty
                   ? Image.network(store.logo, width: 56, height: 56, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _logoPlaceholder())
+                      errorBuilder: (c, e, s) => _logoPlaceholder())
                   : _logoPlaceholder(),
             ),
             const SizedBox(width: 14),
@@ -159,9 +159,47 @@ class _StoresListViewState extends State<StoresListView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(store.name,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: 15)),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(store.name,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w800, fontSize: 15)),
+                      ),
+                      Builder(
+                        builder: (ctx) {
+                          final market = Provider.of<MarketplaceProvider>(ctx, listen: false);
+                          if (!market.storeHasDiscount(store.id)) return const SizedBox();
+                          final maxDisc = market.getStoreMaxDiscount(store.id);
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(colors: [Color(0xFFDC2626), Color(0xFF991B1B)]),
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFDC2626).withValues(alpha: 0.4),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                )
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.local_fire_department_rounded, color: Colors.white, size: 13),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'ILAA -$maxDisc%',
+                                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     children: [

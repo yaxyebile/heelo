@@ -2,16 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/marketplace_provider.dart';
 import '../../models/category.dart';
+import '../../models/product.dart';
 import '../../core/widgets/product_card.dart';
+import 'product_details_view.dart';
 
 class CategoryProductsView extends StatelessWidget {
-  final Category category;
-  const CategoryProductsView({super.key, required this.category});
+  final Category? category;
+  final String? title;
+  final List<Product>? customProducts;
+
+  const CategoryProductsView({
+    super.key,
+    this.category,
+    this.title,
+    this.customProducts,
+  });
 
   @override
   Widget build(BuildContext context) {
     final market = Provider.of<MarketplaceProvider>(context);
-    final products = market.products.where((p) => p.categoryId == category.id && p.isApproved).toList();
+    final displayTitle = title ?? category?.name ?? "Products";
+    final products = customProducts ??
+        (category != null
+            ? market.products.where((p) => p.categoryId == category!.id && p.isApproved).toList()
+            : market.nonRestaurantProducts);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -19,9 +33,12 @@ class CategoryProductsView extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFF1F2937)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF1F2937), size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
         title: Text(
-          category.name,
+          displayTitle,
           style: const TextStyle(color: Color(0xFF1F2937), fontSize: 18, fontWeight: FontWeight.w900),
         ),
       ),
@@ -34,7 +51,7 @@ class CategoryProductsView extends StatelessWidget {
                   height: 400,
                   child: Center(
                     child: Text(
-                      "No products in this category yet.",
+                      "No products found.",
                       style: TextStyle(color: Color(0xFF94A3B8), fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -52,7 +69,14 @@ class CategoryProductsView extends StatelessWidget {
                 itemCount: products.length,
                 itemBuilder: (context, i) => ProductCard(
                   product: products[i],
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProductDetailsView(product: products[i]),
+                      ),
+                    );
+                  },
                   onAddToCart: () => market.addToCart(products[i], 1),
                 ),
               ),

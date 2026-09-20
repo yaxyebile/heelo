@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/services/features_service.dart';
+import '../../core/services/upload_service.dart';
 import '../../core/widgets/custom_text_field.dart';
 import '../../providers/marketplace_provider.dart';
 import '../../models/product.dart';
@@ -23,8 +24,10 @@ class _AddProductViewState extends State<AddProductView> {
   final _priceController = TextEditingController();
   final _imageController = TextEditingController();
   final _stockController = TextEditingController();
+  final _originalPriceController = TextEditingController();
   final _sizesController = TextEditingController();
   final _colorsController = TextEditingController();
+  final _videoController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   String? _selectedCategoryId;
   final List<File> _pickedImages = [];
@@ -37,12 +40,13 @@ class _AddProductViewState extends State<AddProductView> {
       return;
     }
     final x = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+    if (!mounted) return;
     if (x != null) {
       setState(() => _pickedImages.add(File(x.path)));
     }
   }
 
-  bool get _isClothing {
+  bool _checkIsClothing(BuildContext context) {
     if (_selectedCategoryId == null) return false;
     final market = Provider.of<MarketplaceProvider>(context, listen: false);
     final cat = market.categories.where((c) => c.id == _selectedCategoryId).firstOrNull;
@@ -53,6 +57,8 @@ class _AddProductViewState extends State<AddProductView> {
 
   void _handleSubmit() async {
     if (_formKey.currentState!.validate() && _selectedCategoryId != null) {
+      final messenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
       final market = Provider.of<MarketplaceProvider>(context, listen: false);
       final productId = const Uuid().v4();
       final List<String> imageUrls = [];
@@ -72,7 +78,7 @@ class _AddProductViewState extends State<AddProductView> {
       }
 
       if (imageUrls.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text('Sawir URL ama gallery dooro')),
         );
         return;
@@ -81,11 +87,21 @@ class _AddProductViewState extends State<AddProductView> {
       final sizes = _sizesController.text.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
       final colors = _colorsController.text.split(',').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
 
+      final basePrice = double.parse(_priceController.text);
+      final finalPrice = double.parse((basePrice * 1.05).toStringAsFixed(2));
+
+      final origText = _originalPriceController.text.trim();
+      final origBase = double.tryParse(origText);
+      final finalOriginalPrice = (origBase != null && origBase > basePrice)
+          ? double.parse((origBase * 1.05).toStringAsFixed(2))
+          : null;
+
       final product = Product(
         id: productId,
         name: _nameController.text.trim(),
         description: _descController.text.trim(),
-        price: double.parse(_priceController.text),
+        price: finalPrice,
+        originalPrice: finalOriginalPrice,
         image: imageUrls.first,
         gallery: imageUrls,
         categoryId: _selectedCategoryId!,
@@ -94,28 +110,28 @@ class _AddProductViewState extends State<AddProductView> {
         stock: int.parse(_stockController.text),
         rating: 0.0,
         isApproved: false,
-        sizes: _isClothing ? sizes : [],
-        colors: _isClothing ? colors : [],
+        videoUrl: _videoController.text.trim(),
+        sizes: _checkIsClothing(context) ? sizes : [],
+        colors: _checkIsClothing(context) ? colors : [],
       );
 
       await market.addProduct(product);
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Row(children: [
-              Icon(Icons.hourglass_top_rounded, color: Colors.white),
-              SizedBox(width: 10),
-              Expanded(child: Text("Product submitted! Waiting for admin approval.",
-                style: TextStyle(fontWeight: FontWeight.w700))),
-            ]),
-            backgroundColor: const Color(0xFFFFB800),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
-      }
+      if (!mounted) return;
+      navigator.pop();
+      messenger.showSnackBar(
+        SnackBar(
+          content: const Row(children: [
+            Icon(Icons.hourglass_top_rounded, color: Colors.white),
+            SizedBox(width: 10),
+            Expanded(child: Text("Product submitted! Waiting for admin approval.",
+              style: TextStyle(fontWeight: FontWeight.w700))),
+          ]),
+          backgroundColor: const Color(0xFFFFB800),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
     }
   }
 
@@ -157,15 +173,25 @@ class _AddProductViewState extends State<AddProductView> {
                 children: [
                   Expanded(
                     child: CustomTextField(
-                      label: "Price (\$)",
-                      hint: "99.00",
+                      label: "Qiimaha Iibka (\$)",
+                      hint: "80.00",
                       prefixIcon: Icons.attach_money_rounded,
                       controller: _priceController,
                       keyboardType: TextInputType.number,
                       validator: (v) => v == null || double.tryParse(v) == null ? "Valid price required" : null,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: CustomTextField(
+                      label: "Qiimaha Hore (\$)",
+                      hint: "100 (Option)",
+                      prefixIcon: Icons.local_offer_outlined,
+                      controller: _originalPriceController,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: CustomTextField(
                       label: "Stock",
@@ -177,6 +203,12 @@ class _AddProductViewState extends State<AddProductView> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 6),
+              const Padding(
+                padding: EdgeInsets.only(left: 4),
+                child: Text("💡 Qiimaha waxaa otomaatig loogu darayaa +5% commission. Markaad qiimaha hore qorto waxaa samaysmaya Discount Tag.",
+                    style: TextStyle(fontSize: 11, color: Color(0xFF059669), fontWeight: FontWeight.w600)),
               ),
               const SizedBox(height: 20),
               const Text('Sawirrada Alaabta (Ugu badnaan 4)',
@@ -239,6 +271,42 @@ class _AddProductViewState extends State<AddProductView> {
                 controller: _imageController,
               ),
               const SizedBox(height: 20),
+              const Text('🎥 Muuqaalka Alaabta (Video — Optional)',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: CustomTextField(
+                      label: 'Video URL',
+                      hint: 'Youtube ama MP4 link...',
+                      prefixIcon: Icons.video_library_rounded,
+                      controller: _videoController,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () async {
+                      final uploadedUrl = await UploadService.pickAndUploadVideo();
+                      if (uploadedUrl != null) {
+                        setState(() => _videoController.text = uploadedUrl);
+                      }
+                    },
+                    child: Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFF6B00), Color(0xFFD84315)],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.upload_file_rounded, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
               const Text("Category", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: Color(0xFF374151))),
               const SizedBox(height: 10),
               Container(
@@ -263,7 +331,7 @@ class _AddProductViewState extends State<AddProductView> {
                   ),
                 ),
               ),
-              if (_isClothing) ...[
+              if (_checkIsClothing(context)) ...[
                 const SizedBox(height: 20),
                 CustomTextField(
                   label: "Sizes (comma separated)",

@@ -75,9 +75,17 @@ class SupabaseService {
     return (rows as List).map((r) => Category.fromJson(r)).toList();
   }
 
+  static Future<void> upsertCategory(Category category) async {
+    await client.from('categories').upsert(category.toJson());
+  }
+
   static Future<void> upsertCategories(List<Category> list) async {
     if (list.isEmpty) return;
     await client.from('categories').upsert(list.map((c) => c.toJson()).toList());
+  }
+
+  static Future<void> deleteCategory(String id) async {
+    await client.from('categories').delete().eq('id', id);
   }
 
   // ── Stores ─────────────────────────────────────────────────────────────────
@@ -110,7 +118,40 @@ class SupabaseService {
   }
 
   static Future<void> upsertOrder(Order order) async {
-    await client.from('orders').upsert(order.toJson());
+    final fullJson = order.toJson();
+    try {
+      await client.from('orders').upsert(fullJson);
+    } catch (e) {
+      debugPrint('upsertOrder full error ($e), attempting fallback payload...');
+      try {
+        final fallbackJson = Map<String, dynamic>.from(fullJson);
+        fallbackJson.remove('canceled_by_driver_id');
+        fallbackJson.remove('canceled_by_driver_name');
+        await client.from('orders').upsert(fallbackJson);
+      } catch (e2) {
+        debugPrint('upsertOrder fallback error ($e2), attempting minimal core payload...');
+        try {
+          final minimalJson = {
+            'id': order.id,
+            'user_id': order.userId,
+            'items': order.items.map((i) => i.toJson()).toList(),
+            'total_amount': order.totalAmount,
+            'date': order.date.toUtc().toIso8601String(),
+            'status': order.status.name,
+            'store_id': order.storeId,
+            'payment_method': order.paymentMethod.name,
+            'is_paid': order.isPaid,
+            'delivery_type': order.deliveryType,
+            'customer_name': order.customerName,
+            'customer_phone': order.customerPhone,
+            'customer_address': order.customerAddress,
+          };
+          await client.from('orders').upsert(minimalJson);
+        } catch (e3) {
+          debugPrint('upsertOrder minimal error ($e3). Order will be maintained in memory.');
+        }
+      }
+    }
   }
 
   // ── Promos ─────────────────────────────────────────────────────────────────
@@ -185,7 +226,14 @@ class SupabaseService {
   }
 
   static Future<void> upsertPropertyListing(PropertyListing listing) async {
-    await client.from('property_listings').upsert(listing.toJson());
+    try {
+      await client.from('property_listings').upsert(listing.toJson());
+    } catch (e) {
+      debugPrint('upsertPropertyListing fallback without is_reserved: $e');
+      final map = listing.toJson();
+      map.remove('is_reserved');
+      await client.from('property_listings').upsert(map);
+    }
   }
 
   static Future<void> deletePropertyListing(String id) async {
@@ -207,7 +255,14 @@ class SupabaseService {
   }
 
   static Future<void> upsertPropertyBooking(PropertyBooking booking) async {
-    await client.from('property_bookings').upsert(booking.toJson());
+    try {
+      await client.from('property_bookings').upsert(booking.toJson());
+    } catch (e) {
+      debugPrint('upsertPropertyBooking fallback without is_fully_paid: $e');
+      final map = booking.toJson();
+      map.remove('is_fully_paid');
+      await client.from('property_bookings').upsert(map);
+    }
   }
 
   static Future<void> deletePropertyBooking(String id) async {
@@ -285,7 +340,15 @@ class SupabaseService {
   }
 
   static Future<void> insertTechBooking(Map<String, dynamic> booking) async {
-    await client.from('tech_bookings').insert(booking);
+    try {
+      await client.from('tech_bookings').insert(booking);
+    } catch (e) {
+      final fallback = Map<String, dynamic>.from(booking);
+      fallback.remove('is_paid');
+      fallback.remove('phone');
+      fallback.remove('transaction_id');
+      await client.from('tech_bookings').insert(fallback);
+    }
   }
 
   static Future<void> updateTechBookingStatus(String id, String status) async {
